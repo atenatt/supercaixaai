@@ -4,6 +4,12 @@ O **SuperCaixa AI** é um sistema de PDV (Ponto de Venda) para supermercados, pr
 
 ## Princípios de Arquitetura
 
+### Diagrama da Arquitetura
+
+O diagrama abaixo representa a estrutura da Clean Architecture aplicada ao SuperCaixa AI:
+
+![Diagrama de Arquitetura do SuperCaixa AI](./images/diagrama-arquitetura-supercaixaai.jpg)
+
 ### 1. **Clean Architecture**
 - A **Clean Architecture** é o coração do design do SuperCaixa AI. Ela separa o sistema em camadas, garantindo que a lógica de negócio (Entidades e Casos de Uso) seja independente de detalhes de implementação (como banco de dados, interfaces de usuário e frameworks).
   
