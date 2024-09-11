@@ -1,14 +1,23 @@
 Vagrant.configure("2") do |config|
 
+  # Caminho do diretório compartilhado no host
+  shared_folder_path = "./shared_folder"
+
   # Configuração do servidor na rede host-only existente
   config.vm.define "srv-sc01" do |server|
     server.vm.box = "ubuntu/bionic64"
     
-    # Configuração de rede com IP fixo na rede existente 192.168.56.x
-    server.vm.network "private_network", ip: "192.168.56.101"
+    # Configuração de rede com IP fixo na nova rede 172.16.0.x
+    server.vm.network "private_network", ip: "172.16.0.1"
+
+    # Ajusta o hostname para o nome da máquina
+    server.vm.hostname = "srv-sc01"
 
     # Sincronização de pastas
     server.vm.synced_folder ".", "/vagrant"
+    
+    # Diretório compartilhado entre servidor e PDVs
+    server.vm.synced_folder shared_folder_path, "/shared"
 
     # Provisão com script externo
     server.vm.provision "shell", path: "scripts/provision_server.sh"
@@ -22,14 +31,20 @@ Vagrant.configure("2") do |config|
 
   # Configuração dos PDVs na rede host-only existente
   (1..2).each do |i|
-    pdv_name = "pdv-sc-00#{i}"
-    pdv_ip = "192.168.56.10#{i}"
+    pdv_name = "pdv-sc0#{i}"
+    pdv_ip = "172.16.0.1#{i}"
 
     config.vm.define pdv_name do |pdv|
       pdv.vm.box = "generic/alpine313"
       
-      # Configuração de rede com IP fixo na rede existente 192.168.56.x
+      # Configuração de rede com IP fixo na nova rede 172.16.0.x
       pdv.vm.network "private_network", ip: pdv_ip
+
+      # Ajusta o hostname para o nome da máquina
+      pdv.vm.hostname = pdv_name
+
+      # Diretório compartilhado entre servidor e PDVs
+      pdv.vm.synced_folder shared_folder_path, "/shared"
 
       # Provisão com script externo
       pdv.vm.provision "shell", path: "scripts/provision_pdv.sh"
