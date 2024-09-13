@@ -10,6 +10,9 @@ Vagrant.configure("2") do |config|
     # Configuração de rede com IP fixo na nova rede 172.16.0.x
     server.vm.network "private_network", ip: "172.16.0.1"
 
+    # Encaminhamento de porta
+    server.vm.network "forwarded_port", guest: 80, host: 80
+
     # Ajusta o hostname para o nome da máquina
     server.vm.hostname = "srv-sc01"
 
@@ -25,6 +28,29 @@ Vagrant.configure("2") do |config|
     # Configuração de recursos do servidor
     server.vm.provider "virtualbox" do |vb|
       vb.memory = "2048"
+      vb.cpus = 2
+    end
+  end
+
+  # Configuração da máquina de banco de dados
+  config.vm.define "db-sc01" do |db|
+    db.vm.box = "generic/alpine313"
+    
+    # Configuração de rede com IP fixo na nova rede 172.16.0.x
+    db.vm.network "private_network", ip: "172.16.0.2"
+
+    # Ajusta o hostname para o nome da máquina
+    db.vm.hostname = "db-sc01"
+
+    # Diretório compartilhado entre servidor e PDVs
+    db.vm.synced_folder shared_folder_path, "/shared"
+
+    # Provisão com script externo
+    db.vm.provision "shell", path: "scripts/provision_db.sh"
+
+    # Configuração de recursos da máquina de banco de dados
+    db.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
       vb.cpus = 2
     end
   end
