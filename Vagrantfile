@@ -7,6 +7,9 @@ Vagrant.configure("2") do |config|
   config.vm.define "srv-sc01" do |server|
     server.vm.box = "ubuntu/bionic64"
     
+    # Configura um tempo de espera de 300 segundos (5 minutos) para o boot
+    config.vm.boot_timeout = 300
+
     # Configuração de rede com IP fixo na nova rede 172.16.0.x
     server.vm.network "private_network", ip: "172.16.0.1"
 
