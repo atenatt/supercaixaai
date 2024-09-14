@@ -1,2 +1,3 @@
 ubuntu-bionic-18.04-cloudimg-console.log
 shared_folder/ssh_key/*
+.vagrant
