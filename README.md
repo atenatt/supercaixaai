@@ -1,4 +1,4 @@
-## Sobre o Projeto SuperCaixa AI
+## Sobre o Projeto SuperCaixa AI.
 
 Imagine um sistema de PDV tão esperto que praticamente se constrói sozinho! Esse é o **SuperCaixa AI**, o meu projeto atual para desenvolver um sistema de Ponto de Venda (PDV) super inteligente para supermercados. E o melhor? Estou utilizando inteligência artificial para todas as etapas de desenvolvimento. Esse projeto é o meu laboratório de ideias e aprendizado, com foco em eficiência, segurança e, claro, muita automação!
 
