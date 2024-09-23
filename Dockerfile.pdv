@@ -1,0 +1,11 @@
+# Usar imagem base do Golang com Alpine
+FROM golang:1.19-alpine
+
+# Definir diretório de trabalho dentro do container
+WORKDIR /pdv
+
+# Expor a porta para acesso
+EXPOSE 8081
+
+# Executar a aplicação quando o container iniciar
+CMD ["/pdv/pdvapp"]
