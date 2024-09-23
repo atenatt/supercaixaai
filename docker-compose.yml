@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # Serviço do servidor SuperCaixa AI
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: srv-sc01
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./shared:/app
+      - ./:/shared
+    networks:
+      - supercaixaai_net
+    environment:
+      - DB_HOST=mariadb
+      - DB_USER=root
+      - DB_PASSWORD=example
+    command: tail -f /dev/null
+
+  # Serviço do PDV 1
+  pdv1:
+    build:
+      context: .
+      dockerfile: Dockerfile.pdv
+    container_name: sc-pdv01
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./shared/pdvs:/shared
+    networks:
+      - supercaixaai_net
+    command: tail -f /dev/null
+
+  # Serviço do PDV 2
+  pdv2:
+    build:
+      context: .
+      dockerfile: Dockerfile.pdv
+    container_name: sc-pdv02
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./shared/pdvs:/shared
+    networks:
+      - supercaixaai_net
+    command: tail -f /dev/null
+
+  # Banco de dados MariaDB
+  mariadb:
+    image: mariadb:latest
+    container_name: db-sc01
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - supercaixaai_net
+    command: tail -f /dev/null
+
+networks:
+  supercaixaai_net:
+    driver: bridge
+
+volumes:
+  mariadb_data:
