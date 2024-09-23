@@ -10,8 +10,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./shared:/app
       - ./:/shared
+      - ./shared/pdvs:/pdvs
     networks:
       - supercaixaai_net
     environment:
@@ -29,7 +29,7 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - ./shared/pdvs:/shared
+      - ./shared/pdvs:/pdvs
     networks:
       - supercaixaai_net
     command: tail -f /dev/null
@@ -43,7 +43,7 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - ./shared/pdvs:/shared
+      - ./shared/pdvs:/pdvs
     networks:
       - supercaixaai_net
     command: tail -f /dev/null
