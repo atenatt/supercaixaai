@@ -8,4 +8,4 @@ WORKDIR /pdv
 EXPOSE 8081
 
 # Executar a aplicação quando o container iniciar
-CMD ["/pdv/pdvapp"]
+CMD ["apk add dialog"]
