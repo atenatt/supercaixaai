@@ -1,0 +1,14 @@
+# Dockerfile.pdv
+FROM alpine:latest
+
+# Instalar dependências
+RUN apk add --no-cache redis dialog bash
+
+# Copiar o script PDV
+COPY /scripts/pdv_interface.sh /usr/local/bin/
+
+# Tornar o script executável
+RUN chmod +x /usr/local/bin/pdv_interface.sh
+
+# Comando inicial
+CMD ["tail -f /dev/null"]

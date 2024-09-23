@@ -1,70 +1,47 @@
 version: '3.8'
-
 services:
-  # Serviço do servidor SuperCaixa AI
-  server:
+  web:
     build:
-      context: .
+      context: ./server
       dockerfile: Dockerfile
-    container_name: srv-sc01
+    container_name: web_server
     ports:
-      - "8080:8080"
-    volumes:
-      - ./:/shared
-      - ./shared/pdvs:/pdvs
+      - "80:80"
     networks:
-      - supercaixaai_net
-    environment:
-      - DB_HOST=mariadb
-      - DB_USER=root
-      - DB_PASSWORD=example
-    command: tail -f /dev/null
+      - supercaixa_network
+    command: ["nginx", "-g", "daemon off;"]
 
-  # Serviço do PDV 1
   pdv1:
     build:
-      context: .
+      context: ./pdv
       dockerfile: Dockerfile.pdv
-    container_name: sc-pdv01
-    ports:
-      - "8081:8081"
-    volumes:
-      - ./shared/pdvs:/pdvs
+    container_name: pdv1
     networks:
-      - supercaixaai_net
+      - supercaixa_network
+    environment:
+      - DB_HOST=redis_db
     command: tail -f /dev/null
 
-  # Serviço do PDV 2
   pdv2:
     build:
-      context: .
+      context: ./pdv
       dockerfile: Dockerfile.pdv
-    container_name: sc-pdv02
-    ports:
-      - "8082:8082"
-    volumes:
-      - ./shared/pdvs:/pdvs
+    container_name: pdv2
     networks:
-      - supercaixaai_net
+      - supercaixa_network
+    environment:
+      - DB_HOST=redis_db
     command: tail -f /dev/null
 
-  # Banco de dados MariaDB
-  mariadb:
-    image: mariadb:latest
-    container_name: db-sc01
-    environment:
-      MYSQL_ROOT_PASSWORD: example
+  redis_db:
+    image: redis:alpine
+    container_name: redis_db
     ports:
-      - "3306:3306"
-    volumes:
-      - mariadb_data:/var/lib/mysql
+      - "6379:6379"
     networks:
-      - supercaixaai_net
+      - supercaixa_network
     command: tail -f /dev/null
 
 networks:
-  supercaixaai_net:
+  supercaixa_network:
     driver: bridge
-
-volumes:
-  mariadb_data:
