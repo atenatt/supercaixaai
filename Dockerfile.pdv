@@ -2,7 +2,7 @@
 FROM golang:1.19-alpine
 
 # Definir diretório de trabalho dentro do container
-WORKDIR /pdv
+WORKDIR /pdvs
 
 # Expor a porta para acesso
 EXPOSE 8081
