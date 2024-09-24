@@ -23,7 +23,7 @@ menu_principal() {
       5 "Excluir Mercadoria (Admin)" \
       6 "Sair")
 
-    [ $? -ne 0 ] && break
+    [ $? -ne 0 ] && clear && break
 
     case $OPCAO in
       1) cadastrar_usuario ;;
