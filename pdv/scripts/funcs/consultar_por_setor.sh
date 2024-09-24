@@ -33,13 +33,16 @@ consultar_por_setor() {
     SETOR_MERCADORIA=$(redis-cli -h $DB_HOST HGET "$MERCADORIA" setor)
     if [ "$SETOR_MERCADORIA" = "$SETOR" ]; then
       NOME=$(redis-cli -h $DB_HOST HGET "$MERCADORIA" nome)
-      LISTAGEM="$LISTAGEM\n$NOME"
+      CODIGO=$(echo "$MERCADORIA" | cut -d':' -f2)
+      PRECO_VENDA=$(redis-cli -h $DB_HOST HGET "$MERCADORIA" preco_venda)
+      ESTOQUE=$(redis-cli -h $DB_HOST HGET "$MERCADORIA" estoque)
+      LISTAGEM="$LISTAGEM\nCódigo: $CODIGO | Nome: $NOME | Preço: R$ $PRECO_VENDA | Estoque: $ESTOQUE"
     fi
   done
 
   if [ -z "$LISTAGEM" ]; then
     dialog --msgbox "Nenhuma mercadoria encontrada no setor $SETOR." 6 40
   else
-    dialog --msgbox "Mercadorias do setor $SETOR:\n$LISTAGEM" 15 50
+    dialog --msgbox "Mercadorias do setor $SETOR:\n$LISTAGEM" 20 60
   fi
 }
