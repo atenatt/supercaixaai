@@ -2,7 +2,10 @@
 
 # Função para cadastrar mercadoria
 cadastrar_mercadoria() {
-  autenticar_usuario "admin" || return 1
+  # Verifica se o administrador já está autenticado
+  if [ "$ADMIN_AUTENTICADO" -ne 1 ]; then
+    autenticar_usuario "admin" || return 1
+  fi
 
   GTIN=$(dialog --stdout --inputbox "Código GTIN da Mercadoria:" 0 0)
   [ $? -ne 0 ] && return

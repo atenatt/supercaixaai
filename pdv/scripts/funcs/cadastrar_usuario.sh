@@ -2,7 +2,10 @@
 
 # Função para cadastrar usuário
 cadastrar_usuario() {
-  autenticar_usuario "admin" || return 1
+  # Verifica se o administrador já está autenticado
+  if [ "$ADMIN_AUTENTICADO" -ne 1 ]; then
+    autenticar_usuario "admin" || return 1
+  fi
 
   USUARIO=$(dialog --stdout --inputbox "Nome do Usuário:" 0 0)
   [ $? -ne 0 ] && return
