@@ -67,3 +67,19 @@ consultar_mercadoria() {
     dialog --msgbox "Dados da Mercadoria:\n$RESULTADO" 10 50
   fi
 }
+
+# Função para excluir mercadoria pelo código GTIN ou código interno
+excluir_mercadoria() {
+  CODIGO=$(dialog --stdout --inputbox "Informe o Código GTIN ou Código Interno da Mercadoria a ser excluída:" 0 0)
+  [ $? -ne 0 ] && return
+
+  # Confirmar exclusão
+  dialog --yesno "Tem certeza de que deseja excluir a mercadoria com código $CODIGO?" 7 40
+  if [ $? -eq 0 ]; then
+    # Remover a mercadoria do Redis
+    redis-cli -h $DB_HOST DEL "mercadoria:$CODIGO"
+    dialog --msgbox "Mercadoria com código $CODIGO excluída com sucesso!" 6 40
+  else
+    dialog --msgbox "Exclusão cancelada." 6 40
+  fi
+}
