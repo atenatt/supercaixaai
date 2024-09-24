@@ -3,15 +3,14 @@
 # Variável global para saber se o administrador está autenticado
 ADMIN_AUTENTICADO=0
 
-# Carregar todas as funções a partir de /etc/pdv/funcs/
-echo "Carregando funções..."
-
-source /etc/pdv/funcs/autenticar_usuario.sh || { echo "Erro ao carregar autenticar_usuario.sh"; exit 1; }
-source /etc/pdv/funcs/cadastrar_mercadoria.sh || { echo "Erro ao carregar cadastrar_mercadoria.sh"; exit 1; }
-source /etc/pdv/funcs/cadastrar_usuario.sh || { echo "Erro ao carregar cadastrar_usuario.sh"; exit 1; }
-source /etc/pdv/funcs/abrir_caixa.sh || { echo "Erro ao carregar abrir_caixa.sh"; exit 1; }
-source /etc/pdv/funcs/consultar_mercadoria.sh || { echo "Erro ao carregar consultar_mercadoria.sh"; exit 1; }
-source /etc/pdv/funcs/excluir_mercadoria.sh || { echo "Erro ao carregar excluir_mercadoria.sh"; exit 1; }
+# Carregar automaticamente todos os arquivos de funções do diretório /etc/pdv/funcs/
+echo "Carregando funções automaticamente..."
+for func_script in /etc/pdv/funcs/*.sh; do
+  if [ -f "$func_script" ]; then
+    echo "Carregando $func_script..."
+    source "$func_script" || { echo "Erro ao carregar $func_script"; exit 1; }
+  fi
+done
 
 echo "Todas as funções foram carregadas com sucesso."
 
@@ -23,11 +22,13 @@ menu_administracao() {
   fi
 
   while true; do
-    OPCAO_ADMIN=$(dialog --stdout --menu "Administração - SuperCaixa AI" 15 50 4 \
+    OPCAO_ADMIN=$(dialog --stdout --menu "Administração - SuperCaixa AI" 15 50 6 \
       1 "Cadastrar Usuário" \
       2 "Cadastrar Mercadoria" \
       3 "Excluir Mercadoria" \
-      4 "Voltar")
+      4 "Consultar Todas Mercadorias" \
+      5 "Excluir Operador" \
+      6 "Voltar")
 
     [ $? -ne 0 ] && break
 
@@ -35,7 +36,9 @@ menu_administracao() {
       1) cadastrar_usuario ;;
       2) cadastrar_mercadoria ;;
       3) excluir_mercadoria ;;
-      4) break ;;
+      4) consultar_todas_mercadorias ;;
+      5) excluir_operador ;;
+      6) break ;;
     esac
   done
 }
@@ -49,7 +52,7 @@ menu_principal() {
       3 "Consultar Mercadoria (Fiscal e Admin)" \
       4 "Sair")
 
-    [ $? -ne 0 ] && clear && break
+    [ $? -ne 0 ] && break
 
     case $OPCAO in
       1) menu_administracao ;;
