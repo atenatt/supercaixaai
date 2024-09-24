@@ -40,7 +40,6 @@ services:
       - "6379:6379"
     networks:
       - supercaixa_network
-    command: tail -f /dev/null
 
 networks:
   supercaixa_network:
