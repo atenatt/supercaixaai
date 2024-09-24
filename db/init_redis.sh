@@ -1,7 +1,7 @@
 #!/bin/sh
 
-echo "Iniciando Redis em segundo plano..."
-redis-server --daemonize yes
+# Inicializar o Redis com o arquivo de configuração que habilita a persistência
+redis-server /usr/local/etc/redis/redis.conf --daemonize yes
 
 # Verificar se o Redis está pronto
 until redis-cli ping | grep -q "PONG"; do
@@ -29,5 +29,5 @@ else
   exit 1
 fi
 
-# Deixe o Redis rodando em segundo plano sem reiniciar em foreground
-tail -f /dev/null  # Isso mantém o container rodando sem tentar reiniciar o Redis
+# Manter o container rodando
+tail -f /dev/null
