@@ -5,19 +5,19 @@ FROM alpine:latest
 RUN apk add --no-cache redis dialog bash dos2unix
 
 # Criando pasta que irá conter os arquivos de configuração do PDV
-RUN mkdir /etc/pdv
+RUN mkdir -p /etc/pdv/funcs 
 
 # Copiando os scripts PDV
 COPY /scripts/pdv_interface.sh /bin/pdv
-COPY /scripts/funcoes.sh /etc/pdv/
+COPY /scripts/funcs/* /etc/pdv/funcs/
 
 # Tornar os scripts executáveis
 RUN chmod +x /bin/pdv
-RUN chmod +x /etc/pdv/funcoes.sh
+RUN chmod +x /etc/pdv/funcs/*
 
 # Converter o script para formato Unix
 RUN dos2unix /bin/pdv
-RUN dos2unix /etc/pdv/funcoes.sh
+RUN dos2unix /etc/pdv/funcs/*
 
 # Comando inicial
 CMD ["tail -f /dev/null"]
