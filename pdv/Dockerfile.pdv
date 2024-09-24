@@ -2,13 +2,22 @@
 FROM alpine:latest
 
 # Instalar dependências
-RUN apk add --no-cache redis dialog bash
+RUN apk add --no-cache redis dialog bash dos2unix
 
-# Copiar o script PDV
-COPY /scripts/pdv_interface.sh /usr/local/bin/
+# Criando pasta que irá conter os arquivos de configuração do PDV
+RUN mkdir /etc/pdv
 
-# Tornar o script executável
-RUN chmod +x /usr/local/bin/pdv_interface.sh
+# Copiando os scripts PDV
+COPY /scripts/pdv_interface.sh /bin/pdv
+COPY /scripts/funcoes.sh /etc/pdv/
+
+# Tornar os scripts executáveis
+RUN chmod +x /bin/pdv
+RUN chmod +x /etc/pdv/funcoes.sh
+
+# Converter o script para formato Unix
+RUN dos2unix /bin/pdv
+RUN dos2unix /etc/pdv/funcoes.sh
 
 # Comando inicial
 CMD ["tail -f /dev/null"]
