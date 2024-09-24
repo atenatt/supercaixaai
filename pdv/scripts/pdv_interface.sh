@@ -22,14 +22,16 @@ menu_administracao() {
   fi
 
   while true; do
-    OPCAO_ADMIN=$(dialog --stdout --menu "Administração - SuperCaixa AI" 15 50 7 \
+    OPCAO_ADMIN=$(dialog --stdout --menu "Administração - SuperCaixa AI" 25 50 8 \
       1 "Cadastrar Usuário" \
       2 "Cadastrar Mercadoria" \
       3 "Excluir Mercadoria" \
       4 "Consultar Todas Mercadorias" \
       5 "Consultar Todos Usuários" \
       6 "Excluir Usuário" \
-      7 "Voltar")
+      7 "Criar Setor" \
+      8 "Consultar Mercadorias por Setor" \
+      9 "Voltar")
 
     [ $? -ne 0 ] && break
 
@@ -40,7 +42,9 @@ menu_administracao() {
       4) consultar_todas_mercadorias ;;
       5) consultar_todos_usuarios ;;
       6) excluir_usuario ;;
-      7) break ;;
+      7) criar_setor ;;
+      8) consultar_por_setor ;;
+      9) break ;;
     esac
   done
 }
@@ -55,16 +59,17 @@ menu_principal() {
       4 "Futuramente" \
       5 "Futuramente" \
       6 "Futuramente" \
-      7 "Administração" \
-      8 "Sair")
+      7 "Futuramente" \
+      8 "Administração" \
+      9 "Sair")
 
     [ $? -ne 0 ] && break
 
     case $OPCAO in
       1) abrir_caixa ;;
       2) consultar_mercadoria ;;
-      7) menu_administracao ;;
-      8) break ;;
+      8) menu_administracao ;;
+      9) break ;;
     esac
   done
 }
