@@ -1,20 +1,19 @@
 #!/bin/sh
 
-# Função para consultar mercadoria (Fiscal e Admin)
+# Função para consultar mercadoria específica (Fiscal e Admin)
 consultar_mercadoria() {
-  # Verifica se o usuário é fiscal ou administrador
   autenticar_usuario "fiscal" || autenticar_usuario "admin" || return 1
 
   CODIGO=$(dialog --stdout --inputbox "Código GTIN ou Interno:" 0 0)
   [ $? -ne 0 ] && return
 
-  # Buscar dados da mercadoria no Redis
-  RESULTADO=$(redis-cli -h $DB_HOST HGETALL "mercadoria:$CODIGO")
+  NOME=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" nome)
+  PRECO_VENDA=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" preco_venda)
+  ESTOQUE=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" estoque)
 
-  # Verificar se a mercadoria foi encontrada
-  if [ -z "$RESULTADO" ]; then
-    dialog --msgbox "Mercadoria não encontrada." 6 40
+  if [ -z "$NOME" ] || [ -z "$PRECO_VENDA" ] || [ -z "$ESTOQUE" ]; then
+    dialog --msgbox "Mercadoria não encontrada!" 6 40
   else
-    dialog --msgbox "Dados da Mercadoria:\n$RESULTADO" 10 50
+    dialog --msgbox "Código: $CODIGO\nNome: $NOME\nPreço de Venda: R$ $PRECO_VENDA\nEstoque: $ESTOQUE" 10 50
   fi
 }
