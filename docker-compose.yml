@@ -34,7 +34,8 @@ services:
     command: tail -f /dev/null
 
   redis_db:
-    image: redis:alpine
+    build:
+      context: ./db
     container_name: redis_db
     ports:
       - "6379:6379"
