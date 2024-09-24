@@ -1,8 +1,10 @@
 FROM redis:alpine
 
-# Comando para inicializar o Redis e criar o usuário admin
-RUN redis-server --daemonize yes && \
-    redis-cli HMSET "usuario:admin" nome "admin" senha "admin" role "admin" && \
-    redis-cli save && \
-    redis-cli shutdown && \
-    echo "Usuário admin criado com sucesso (usuário: admin, senha: admin)."
+# Copiar o script init_redis.sh para dentro do container
+COPY init_redis.sh /usr/local/bin/init_redis.sh
+
+# Tornar o script executável
+RUN chmod +x /usr/local/bin/init_redis.sh
+
+# Comando para iniciar o Redis e garantir a criação do usuário admin na execução
+ENTRYPOINT ["/usr/local/bin/init_redis.sh"]
