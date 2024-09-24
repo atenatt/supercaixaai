@@ -45,25 +45,29 @@ menu_administracao() {
   done
 }
 
-# Menu principal com controle de acesso baseado em roles
+# Função para o menu principal com controle de acesso baseado em roles
 menu_principal() {
   while true; do
-    OPCAO=$(dialog --stdout --menu "SuperCaixa AI - PDV" 15 50 6 \
-      1 "Administração" \
-      2 "Abrir Caixa (Operador e Fiscal)" \
-      3 "Consultar Mercadoria (Fiscal e Admin)" \
-      4 "Sair")
+    OPCAO=$(dialog --stdout --menu "SuperCaixa AI - PDV" 25 50 9 \
+      1 "Abrir Caixa" \
+      2 "Consultar Mercadoria" \
+      3 "Futuramente" \
+      4 "Futuramente" \
+      5 "Futuramente" \
+      6 "Futuramente" \
+      7 "Administração" \
+      8 "Sair")
 
     [ $? -ne 0 ] && break
 
     case $OPCAO in
-      1) menu_administracao ;;
-      2) abrir_caixa ;;
-      3) consultar_mercadoria ;;
-      4) break ;;
+      1) abrir_caixa ;;
+      2) consultar_mercadoria ;;
+      7) menu_administracao ;;
+      8) break ;;
     esac
   done
 }
 
-# Inicializar o sistema (usuário admin é criado via Dockerfile)
+# Inicializar o sistema
 menu_principal
