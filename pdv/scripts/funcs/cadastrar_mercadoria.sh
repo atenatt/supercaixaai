@@ -7,8 +7,22 @@ cadastrar_mercadoria() {
     autenticar_usuario "admin" || return 1
   fi
 
-  # Coleta todos os dados necessários para o cadastro da mercadoria em uma única tela
-  DADOS=$(dialog --stdout --form "Cadastro de Mercadoria" 15 60 6 \
+  # Coletar os setores disponíveis
+  SETORES=$(redis-cli -h $DB_HOST SMEMBERS "setores")
+
+  if [ -z "$SETORES" ]; then
+    dialog --msgbox "Nenhum setor cadastrado. Crie um setor antes de cadastrar uma mercadoria." 6 50
+    return 1
+  fi
+
+  # Montar a lista de setores para o dialog
+  OPCOES_SETORES=""
+  for SETOR in $SETORES; do
+    OPCOES_SETORES="$OPCOES_SETORES $SETOR $SETOR"
+  done
+
+  # Coleta os dados necessários para o cadastro da mercadoria
+  DADOS=$(dialog --stdout --form "Cadastro de Mercadoria" 18 50 0 \
     "Nome:" 1 1 "" 1 20 30 0 \
     "Código GTIN:" 2 1 "" 2 20 30 0 \
     "Código Interno:" 3 1 "" 3 20 30 0 \
@@ -16,7 +30,10 @@ cadastrar_mercadoria() {
     "Preço de Venda:" 5 1 "" 5 20 30 0 \
     "Estoque:" 6 1 "" 6 20 30 0)
 
-  # Se o usuário cancelar o formulário
+  [ $? -ne 0 ] && return
+
+  # Selecionar o setor
+  SETOR=$(dialog --stdout --menu "Selecione o setor:" 15 50 6 $OPCOES_SETORES)
   [ $? -ne 0 ] && return
 
   # Separar os dados preenchidos
@@ -34,8 +51,8 @@ cadastrar_mercadoria() {
   fi
 
   # Salvar os dados no Redis
-  redis-cli -h $DB_HOST HMSET "mercadoria:$GTIN" nome "$NOME" codigo_interno "$CODIGO_INTERNO" preco_custo "$PRECO_CUSTO" preco_venda "$PRECO_VENDA" estoque "$ESTOQUE"
+  redis-cli -h $DB_HOST HMSET "mercadoria:$GTIN" nome "$NOME" codigo_interno "$CODIGO_INTERNO" preco_custo "$PRECO_CUSTO" preco_venda "$PRECO_VENDA" estoque "$ESTOQUE" setor "$SETOR"
 
   # Exibir mensagem de sucesso
-  dialog --msgbox "Mercadoria cadastrada com sucesso!" 6 40
+  dialog --msgbox "Mercadoria cadastrada com sucesso no setor $SETOR!" 6 40
 }
