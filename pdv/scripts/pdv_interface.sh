@@ -28,7 +28,7 @@ menu_administracao() {
       3 "Excluir Mercadoria" \
       4 "Consultar Todas Mercadorias" \
       5 "Consultar Todos Usuários" \
-      6 "Excluir Operador" \
+      6 "Excluir Usuário" \
       7 "Voltar")
 
     [ $? -ne 0 ] && break
@@ -39,13 +39,13 @@ menu_administracao() {
       3) excluir_mercadoria ;;
       4) consultar_todas_mercadorias ;;
       5) consultar_todos_usuarios ;;
-      6) excluir_operador ;;
+      6) excluir_usuario ;;
       7) break ;;
     esac
   done
 }
 
-# Função para o menu principal com controle de acesso baseado em roles
+# Menu principal com controle de acesso baseado em roles
 menu_principal() {
   while true; do
     OPCAO=$(dialog --stdout --menu "SuperCaixa AI - PDV" 15 50 6 \
