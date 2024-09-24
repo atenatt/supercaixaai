@@ -3,10 +3,10 @@
 # Função para autenticar usuário
 autenticar_usuario() {
   ROLE_REQUERIDA=$1
-  USUARIO=$(dialog --stdout --inputbox "Nome do Usuário:" 0 0)
+  USUARIO=$(dialog --stdout --inputbox "Usuário:" 0 0)
   [ $? -ne 0 ] && return 1
 
-  SENHA=$(dialog --stdout --passwordbox "Senha do Usuário:" 0 0)
+  SENHA=$(dialog --stdout --passwordbox "Senha:" 0 0)
   [ $? -ne 0 ] && return 1
 
   # Recuperar as informações do usuário no Redis
