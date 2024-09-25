@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Carregar a função de log
+source /etc/pdv/funcs/registrar_logs.sh
+
 # Função para cadastrar usuário
 cadastrar_usuario() {
   # Verifica se o administrador já está autenticado
@@ -27,6 +30,9 @@ cadastrar_usuario() {
 
   # Salvar no Redis
   redis-cli -h $DB_HOST HMSET "usuario:$USUARIO" nome "$USUARIO" senha "$SENHA" role "$ROLE"
+
+  # Registrar log da ação de cadastro de usuário
+  registrar_log "admin" "Cadastrou usuário" "Nome: $USUARIO, Função: $ROLE"
 
   dialog --msgbox "Usuário $USUARIO cadastrado com sucesso!" 6 40
 }

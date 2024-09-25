@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Carregar a função de log
+source /etc/pdv/funcs/registrar_logs.sh
+
 # Função para editar uma mercadoria existente
 editar_mercadoria() {
   # Verifica se o administrador já está autenticado
@@ -15,6 +18,8 @@ editar_mercadoria() {
   MERCADORIA_EXISTENTE=$(redis-cli -h $DB_HOST EXISTS "mercadoria:$CODIGO")
   if [ "$MERCADORIA_EXISTENTE" -eq 0 ]; then
     dialog --msgbox "Mercadoria não encontrada!" 6 40
+    # Registrar log de tentativa de edição de mercadoria não encontrada
+    registrar_log "admin" "Tentou editar mercadoria" "Mercadoria não encontrada: Código $CODIGO"
     return 1
   fi
 
@@ -41,6 +46,9 @@ editar_mercadoria() {
 
   # Atualizar os dados da mercadoria no Redis
   redis-cli -h $DB_HOST HMSET "mercadoria:$CODIGO" nome "$NOVO_NOME" preco_custo "$NOVO_PRECO_CUSTO" preco_venda "$NOVO_PRECO_VENDA" estoque "$NOVO_ESTOQUE"
+
+  # Registrar log da ação de edição de mercadoria
+  registrar_log "admin" "Editou mercadoria" "Código: $CODIGO, Nome: $NOVO_NOME, Preço de Venda: $NOVO_PRECO_VENDA, Estoque: $NOVO_ESTOQUE"
 
   # Exibir mensagem de sucesso
   dialog --msgbox "Mercadoria $NOVO_NOME atualizada com sucesso!" 6 40

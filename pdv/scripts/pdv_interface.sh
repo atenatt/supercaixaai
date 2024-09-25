@@ -21,8 +21,8 @@ menu_administracao() {
     ADMIN_AUTENTICADO=1
   fi
 
-  while true; do
-    OPCAO_ADMIN=$(dialog --stdout --menu "Administração - SuperCaixa AI" 25 50 9 \
+while true; do
+    OPCAO_ADMIN=$(dialog --stdout --menu "Administração - SuperCaixa AI" 25 50 10 \
       1 "Cadastrar Usuário" \
       2 "Cadastrar Mercadoria" \
       3 "Excluir Mercadoria" \
@@ -32,7 +32,8 @@ menu_administracao() {
       7 "Criar Setor" \
       8 "Consultar Mercadorias por Setor" \
       9 "Editar Mercadoria" \
-      10 "Voltar")
+      10 "Consultar Logs" \
+      11 "Voltar")
 
     [ $? -ne 0 ] && break
 
@@ -46,7 +47,8 @@ menu_administracao() {
       7) criar_setor ;;
       8) consultar_por_setor ;;
       9) editar_mercadoria ;;
-      10) break ;;
+      10) consultar_logs ;;  # Nova função para consultar logs
+      11) break ;;
     esac
   done
 }

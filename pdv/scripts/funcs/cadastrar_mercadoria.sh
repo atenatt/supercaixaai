@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Carregar a função de log
+source /etc/pdv/funcs/registrar_logs.sh
+
 # Função para cadastrar mercadoria com todas as informações em uma única tela
 cadastrar_mercadoria() {
   # Verifica se o administrador já está autenticado
@@ -52,6 +55,9 @@ cadastrar_mercadoria() {
 
   # Salvar os dados no Redis
   redis-cli -h $DB_HOST HMSET "mercadoria:$GTIN" nome "$NOME" codigo_interno "$CODIGO_INTERNO" preco_custo "$PRECO_CUSTO" preco_venda "$PRECO_VENDA" estoque "$ESTOQUE" setor "$SETOR"
+
+  # Registrar log da ação de cadastro de mercadoria
+  registrar_log "admin" "Cadastrou mercadoria" "Nome: $NOME, GTIN: $GTIN, Código Interno: $CODIGO_INTERNO, Preço: $PRECO_VENDA, Estoque: $ESTOQUE, Setor: $SETOR"
 
   # Exibir mensagem de sucesso
   dialog --msgbox "Mercadoria cadastrada com sucesso no setor $SETOR!" 6 40

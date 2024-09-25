@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Carregar a função de log
+source /etc/pdv/funcs/registrar_logs.sh
+
 # Função para criar setor
 criar_setor() {
   # Verifica se o administrador já está autenticado
@@ -20,6 +23,9 @@ criar_setor() {
 
   # Salva o setor no banco de dados
   redis-cli -h $DB_HOST SADD "setores" "$NOME_SETOR"
+
+  # Registrar log da ação de criação de setor
+  registrar_log "admin" "Criou setor" "Nome do Setor: $NOME_SETOR"
 
   # Exibe mensagem de sucesso
   dialog --msgbox "Setor $NOME_SETOR criado com sucesso!" 6 40
