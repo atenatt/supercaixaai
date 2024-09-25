@@ -10,6 +10,8 @@ services:
     networks:
       - supercaixa_network
     command: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - redis_data:/data
 
   pdv1:
     build:
@@ -21,6 +23,8 @@ services:
     environment:
       - DB_HOST=redis_db
     command: tail -f /dev/null
+    volumes:
+      - redis_data:/data    
 
   pdv2:
     build:
@@ -32,6 +36,8 @@ services:
     environment:
       - DB_HOST=redis_db
     command: tail -f /dev/null
+    volumes:
+      - redis_data:/data
 
   redis_db:
     build:
