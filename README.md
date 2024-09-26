@@ -7,9 +7,8 @@ Aqui estão os heróis tecnológicos que estão ajudando a colocar tudo em prát
 
 - **Golang** 🐹: O cérebro por trás do backend. Rápido e eficiente, ele é quem processa todas as vendas e faz a mágica acontecer nos bastidores.
 - **Shell Script** 🖥️: A linha de frente da automação. Precisa fazer as coisas rodarem sem erro? O Shell Script está aqui para isso, mexendo os pauzinhos de configuração.
-- **Docker e Kubernetes** 🐳: (em breve!) Esses caras vão ser os responsáveis por empacotar tudo direitinho e fazer o sistema rodar na nuvem sem complicações.
-- **Ansible** 🤖: Esse aqui é o mestre da automação e vai ajudar a gerenciar tudo na infraestrutura, sem perder tempo.
-- **MariaDB e NoSQL** 🗄️: Eles são a memória do sistema. Tudo o que você vende, registra e armazena está seguro aqui.
+- **Docker e Kubernetes** 🐳: Esses caras vão ser os responsáveis por empacotar tudo direitinho e fazer o sistema rodar na nuvem sem complicações.
+- **Redis DB** 🗄️: Eles são a memória do sistema. Tudo o que você vende, registra e armazena está seguro aqui.
 - **Nginx** 🚦: Controla o tráfego de dados como um guarda de trânsito, mantendo tudo fluindo suave como manteiga.
 - **AWS/EC2 e Terraform** ☁️: A dupla dinâmica para a infraestrutura na nuvem. Vão garantir que o **SuperCaixa AI** esteja online e funcionando onde quer que você precise.
 
