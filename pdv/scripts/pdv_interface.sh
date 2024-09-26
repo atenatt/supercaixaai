@@ -7,12 +7,19 @@ ADMIN_AUTENTICADO=0
 echo "Carregando funções automaticamente..."
 for func_script in /etc/pdv/funcs/*.sh; do
   if [ -f "$func_script" ]; then
+    # Verifica se o script é o monitorar_promocoes.sh e o ignora
+    if [ "$(basename "$func_script")" = "monitorar_promocoes.sh" ]; then
+      echo "Ignorando $func_script..."
+      continue
+    fi
+
     echo "Carregando $func_script..."
     source "$func_script" || { echo "Erro ao carregar $func_script"; exit 1; }
   fi
 done
 
 echo "Todas as funções foram carregadas com sucesso."
+
 
 # Função para o menu de administração (somente para administradores)
 menu_administracao() {
@@ -41,7 +48,9 @@ menu_administracao() {
       10 "Consultar Logs" \
       11 "Realizar Backup do Banco de Dados" \
       12 "Verificar Último Backup" \
-      13 "Voltar")
+      13 "Criar Promoção" \
+      14 "Consultar Promoção" \
+      15 "Voltar")
 
     [ $? -ne 0 ] && break
 
@@ -58,7 +67,9 @@ menu_administracao() {
       10) consultar_logs ;;
       11) backup_banco ;;
       12) verificar_ultimo_backup ;;
-      13) echo "Saindo do menu de administração..." && break ;;
+      13) criar_promocao ;;
+      14) consultar_promocao ;;
+      15) echo "Saindo do menu de administração..." && break ;;
     esac
   done
 }
