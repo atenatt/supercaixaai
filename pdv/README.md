@@ -1,7 +1,3 @@
-Aqui está o conteúdo do arquivo `README.md` para o diretório `/pdv` com um tom descontraído e informativo, explicando os principais pontos dos scripts e funcionalidades que você implementou:
-
----
-
 # 🛒 SuperCaixa AI - PDV
 
 Bem-vindo ao **SuperCaixa AI - PDV**! 🎉 Este projeto é um PDV inteligente e modular, cheio de funcionalidades úteis para gerenciamento de mercadorias, usuários, setores e promoções. Tudo isso em um ambiente super clean e funcional. Abaixo você encontrará uma visão geral sobre o que cada script faz e como tudo foi montado!
