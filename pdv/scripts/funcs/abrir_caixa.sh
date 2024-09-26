@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Carregar a função de log
-source /etc/pdv/funcs/registrar_logs.sh
+source /etc/pdv/funcs/funcs_logs.sh
 
 # Função para abrir o caixa (Operador e Fiscal)
 abrir_caixa() {

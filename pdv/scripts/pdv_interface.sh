@@ -38,18 +38,18 @@ menu_administracao() {
     OPCAO_ADMIN=$(dialog --stdout --menu "Administração - SuperCaixa AI" 25 50 12 \
       1 "Cadastrar Usuário" \
       2 "Cadastrar Mercadoria" \
-      3 "Excluir Mercadoria" \
-      4 "Consultar Todas Mercadorias" \
-      5 "Consultar Todos Usuários" \
-      6 "Excluir Usuário" \
-      7 "Criar Setor" \
-      8 "Consultar Mercadorias por Setor" \
-      9 "Editar Mercadoria" \
-      10 "Consultar Logs" \
-      11 "Realizar Backup do Banco de Dados" \
-      12 "Verificar Último Backup" \
-      13 "Criar Promoção" \
-      14 "Consultar Promoção" \
+      3 "Consultar Mercadorias por Setor" \
+      4 "Consultar Promoção" \
+      5 "Consultar Todas Mercadorias" \
+      6 "Consultar Todos Usuários" \
+      7 "Consultar Logs" \
+      8 "Criar Promoção" \
+      9 "Criar Setor" \
+      10 "Editar Mercadoria" \      
+      11 "Excluir Mercadoria" \
+      12 "Excluir Usuário" \
+      13 "Realizar Backup do Banco de Dados" \
+      14 "Verificar Último Backup" \
       15 "Voltar")
 
     [ $? -ne 0 ] && break
@@ -57,18 +57,18 @@ menu_administracao() {
     case $OPCAO_ADMIN in
       1) cadastrar_usuario ;;
       2) cadastrar_mercadoria ;;
-      3) excluir_mercadoria ;;
-      4) consultar_todas_mercadorias ;;
-      5) consultar_todos_usuarios ;;
-      6) excluir_usuario ;;
-      7) criar_setor ;;
-      8) consultar_por_setor ;;
-      9) editar_mercadoria ;;
-      10) consultar_logs ;;
-      11) backup_banco ;;
-      12) verificar_ultimo_backup ;;
-      13) criar_promocao ;;
-      14) consultar_promocao ;;
+      3) consultar_por_setor ;;
+      4) consultar_promocao ;;      
+      5) consultar_todas_mercadorias ;;
+      6) consultar_todos_usuarios ;;
+      7) consultar_logs ;;
+      8) criar_promocao ;;
+      9) criar_setor ;;
+      10) editar_mercadoria ;;
+      11) excluir_mercadoria ;;
+      12) excluir_usuario ;;
+      13) backup_banco ;;
+      14) verificar_ultimo_backup ;;
       15) echo "Saindo do menu de administração..." && break ;;
     esac
   done
