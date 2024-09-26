@@ -22,7 +22,7 @@ services:
       - supercaixa_network
     environment:
       - DB_HOST=redis_db
-    command: tail -f /dev/null
+    command: /bin/sh -c /etc/pdv/funcs/monitorar_promocoes.sh &
     volumes:
       - redis_data:/data    
 
@@ -35,7 +35,7 @@ services:
       - supercaixa_network
     environment:
       - DB_HOST=redis_db
-    command: tail -f /dev/null
+    command: /bin/sh -c /etc/pdv/funcs/monitorar_promocoes.sh &
     volumes:
       - redis_data:/data
 
