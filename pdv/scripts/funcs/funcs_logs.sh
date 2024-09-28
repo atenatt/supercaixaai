@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Carregar a função de log
-source /etc/pdv/funcs/funcs_logs.sh
-
 # Função para registrar os testes no log de funções
 registrar_teste_log() {
   MENSAGEM=$1
