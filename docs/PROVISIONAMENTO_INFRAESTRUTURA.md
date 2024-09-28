@@ -1,80 +1,113 @@
-# Provisionamento da Infraestrutura do SuperCaixa AI
+# Provisionamento da Infraestrutura do SuperCaixa AI 🖥️🛠️
 
-Este documento descreve o processo passo a passo para provisionar a infraestrutura do **SuperCaixa AI**, que inclui o servidor e dois PDVs (Pontos de Venda), utilizando Vagrant.
+Este documento descreve o processo de provisionamento da infraestrutura do **SuperCaixa AI**, que inclui um servidor principal e dois PDVs (Pontos de Venda). Agora, utilizando **Docker** em vez de Vagrant, temos uma infraestrutura mais leve, portátil e fácil de escalar.
 
-## Requisitos
-Antes de iniciar o provisionamento, certifique-se de que você tem os seguintes itens configurados no seu ambiente:
-- **Vagrant** instalado
-- **VirtualBox** instalado
+## Requisitos 📋
+
+Certifique-se de que o ambiente atenda aos seguintes requisitos antes de iniciar o provisionamento:
+- **Docker** instalado
+- **Docker Compose** instalado
 - **Git** instalado
 
-## Passo a Passo para o Provisionamento
+## Passo a Passo para o Provisionamento 🚀
 
 ### 1. Clone o Repositório do Projeto
 
-Clone o repositório do projeto para o seu ambiente local:
+Primeiro, faça o clone do repositório **SuperCaixa AI** para o seu ambiente local:
 
 ```bash
 git clone https://github.com/supercaixaai/supercaixaai.git
 cd supercaixaai
 ```
 
-### 2. Inicie o Provisionamento
+### 2. Configure o Ambiente com Docker Compose
 
-Para provisionar o servidor e os dois PDVs, execute o comando abaixo na raiz do projeto:
+A infraestrutura é definida no arquivo `docker-compose.yml`. Ele define três serviços principais:
+- **web**: Servidor web principal que executa o Nginx.
+- **pdv1**: Primeiro ponto de venda (PDV 1).
+- **pdv2**: Segundo ponto de venda (PDV 2).
+- **redis_db**: O banco de dados Redis que armazena informações de mercadorias, promoções e usuários.
+
+Para provisionar todos os containers de uma só vez, execute:
 
 ```bash
-vagrant up
+docker-compose up -d
 ```
 
-Isso criará e provisionará três máquinas virtuais:
-- **srv-sc01**: Servidor principal.
-- **pdv-sc-001**: Primeiro PDV.
-- **pdv-sc-002**: Segundo PDV.
+### 3. Verificar o Status dos Containers 🖥️
 
-### 3. Acessar as Máquinas Virtuais
+Após executar o `docker-compose`, você pode verificar o status dos containers e garantir que estão rodando corretamente com:
 
-Você pode acessar cada uma das máquinas utilizando o SSH:
+```bash
+docker ps
+```
 
-- Para acessar o **servidor**:
+Isso exibirá os containers em execução:
+- **web_server**: Servidor Nginx
+- **pdv1**: Primeiro PDV
+- **pdv2**: Segundo PDV
+- **redis_db**: Banco de dados Redis
+
+### 4. Acessar os Containers 🔧
+
+Você pode se conectar diretamente a qualquer container via **docker exec**:
+
+- Acessar o **PDV 1**:
   ```bash
-  vagrant ssh srv-sc01
+  docker exec -it pdv1 sh
   ```
 
-- Para acessar o **PDV 1**:
+- Acessar o **PDV 2**:
   ```bash
-  vagrant ssh pdv-sc-001
+  docker exec -it pdv2 sh
   ```
 
-- Para acessar o **PDV 2**:
+- Acessar o **Redis** (banco de dados):
   ```bash
-  vagrant ssh pdv-sc-002
+  docker exec -it redis_db redis-cli
   ```
 
-### 4. Atualizar o Sistema nas Máquinas
+### 5. Provisionamento de Serviços e Funções 🌟
 
-Se necessário, você pode atualizar os pacotes de software dentro de cada máquina virtual. Use os comandos a seguir, dependendo da máquina:
+Dentro dos containers **PDV 1** e **PDV 2**, você terá acesso aos scripts que controlam o fluxo de operações de caixa, cadastro de mercadorias, promoções, e muito mais. A interface principal é gerida pelo script `pdv_interface.sh`, que contém todas as opções para o usuário final, como:
 
-- No **servidor**:
+- Abrir caixa
+- Cadastrar mercadorias
+- Consultar mercadorias e promoções
+- Cadastrar e gerenciar usuários
+
+### 6. Gerenciamento de Promoções 🔔
+
+As promoções são monitoradas automaticamente por um processo que é iniciado junto com o container PDV. Esse processo verifica as promoções expiradas a cada hora e restaura os preços originais automaticamente.
+
+Se você quiser criar ou consultar promoções, poderá fazer isso diretamente pelo menu de administração no PDV.
+
+### 7. Backup do Banco de Dados 💾
+
+Uma função de backup está configurada para realizar backups automáticos do banco Redis. Você pode realizar backups manuais através da interface ou consultar o último backup realizado.
+
+- Para realizar o backup:
   ```bash
-  sudo apt update && sudo apt upgrade -y
+  docker exec -it pdv1 sh /etc/pdv/funcs/backup_banco.sh
   ```
 
-- Nos **PDVs**:
+### 8. Parar ou Destruir os Containers 🛑
+
+Quando quiser parar ou remover os containers:
+
+- Para parar os containers sem destruí-los:
   ```bash
-  sudo apk update && sudo apk upgrade
+  docker-compose down
   ```
 
-### 5. Parar ou Destruir as Máquinas Virtuais
-
-Quando você terminar de usar as máquinas virtuais, você pode pará-las ou destruí-las:
-
-- Para parar as máquinas (mantendo o estado):
+- Para destruir completamente os containers e volumes:
   ```bash
-  vagrant halt
+  docker-compose down --volumes
   ```
 
-- Para destruir as máquinas (exclui as VMs completamente):
-  ```bash
-  vagrant destroy
-  ```
+Isso removerá os containers, mas o volume de backup dos dados do Redis será mantido, garantindo que você não perca dados cruciais.
+
+---
+
+Agora o **SuperCaixa AI** está provisionado e pronto para ser utilizado! 🎉
+
