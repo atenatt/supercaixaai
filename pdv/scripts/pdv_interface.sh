@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Variável global para saber se o administrador está autenticado
 ADMIN_AUTENTICADO=0
