@@ -25,16 +25,24 @@ echo "Todas as funções foram carregadas com sucesso."
 menu_administracao() {
   echo "Entrando no menu de administração..."  # Debug
 
+  # Verificação se o administrador já está autenticado
   if [ "$ADMIN_AUTENTICADO" -eq 0 ]; then
-    autenticar_usuario "admin" || { 
-      echo "Falha na autenticação";  # Debug
+    echo "Solicitando autenticação de administrador..."  # Debug
+
+    # Chama a função de autenticação e verifica o retorno
+    autenticar_usuario "admin"
+    if [ $? -ne 0 ]; then
+      echo "Falha na autenticação."  # Debug
+      dialog --msgbox "Falha na autenticação!" 6 40
       return 1
-    }
-    ADMIN_AUTENTICADO=1
-    echo "Administrador autenticado com sucesso!"  # Debug
+    else
+      ADMIN_AUTENTICADO=1
+      echo "Administrador autenticado com sucesso!"  # Debug
+    fi
   fi
 
   while true; do
+    echo "Exibindo menu de administração..."  # Debug
     OPCAO_ADMIN=$(dialog --stdout --menu "Administração - SuperCaixa AI" 25 50 12 \
       1 "Cadastrar Usuário" \
       2 "Cadastrar Mercadoria" \
@@ -45,7 +53,7 @@ menu_administracao() {
       7 "Consultar Logs" \
       8 "Criar Promoção" \
       9 "Criar Setor" \
-      10 "Editar Mercadoria" \      
+      10 "Editar Mercadoria" \
       11 "Excluir Mercadoria" \
       12 "Excluir Usuário" \
       13 "Realizar Backup do Banco de Dados" \
@@ -58,7 +66,7 @@ menu_administracao() {
       1) cadastrar_usuario ;;
       2) cadastrar_mercadoria ;;
       3) consultar_por_setor ;;
-      4) consultar_promocao ;;      
+      4) consultar_promocao ;;
       5) consultar_todas_mercadorias ;;
       6) consultar_todos_usuarios ;;
       7) consultar_logs ;;

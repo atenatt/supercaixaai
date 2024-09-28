@@ -46,6 +46,7 @@ autenticar_usuario() {
   return 0
 }
 
+
 # Função para cadastrar usuário
 cadastrar_usuario() {
   # Verifica se o administrador já está autenticado
