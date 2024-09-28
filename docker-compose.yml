@@ -10,6 +10,8 @@ services:
     networks:
       - supercaixa_network
     command: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - redis_data:/data
 
   pdv1:
     build:
@@ -20,7 +22,9 @@ services:
       - supercaixa_network
     environment:
       - DB_HOST=redis_db
-    command: tail -f /dev/null
+    command: /bin/sh -c /etc/pdv/funcs/monitorar_promocoes.sh &
+    volumes:
+      - redis_data:/data    
 
   pdv2:
     build:
@@ -31,7 +35,9 @@ services:
       - supercaixa_network
     environment:
       - DB_HOST=redis_db
-    command: tail -f /dev/null
+    command: /bin/sh -c /etc/pdv/funcs/monitorar_promocoes.sh &
+    volumes:
+      - redis_data:/data
 
   redis_db:
     build:

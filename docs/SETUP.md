@@ -1,6 +1,6 @@
-# Guia de Instalação - SuperCaixa AI
+# Guia de Instalação - SuperCaixa AI (Docker Edition)
 
-Este guia descreve como configurar o ambiente de desenvolvimento do **SuperCaixa AI** localmente, utilizando **Vagrant** para provisionar as máquinas virtuais e outras ferramentas essenciais. Siga os passos abaixo para garantir que o sistema esteja corretamente configurado.
+Este guia descreve como configurar o ambiente de desenvolvimento do **SuperCaixa AI** localmente, utilizando **Docker** em vez de Vagrant. O objetivo é provisionar automaticamente todos os containers necessários para o servidor, os PDVs e o banco de dados.
 
 ## Pré-requisitos
 
@@ -9,12 +9,12 @@ Antes de iniciar a instalação, certifique-se de que seu ambiente tenha as segu
 1. **Git** - Para clonar o repositório e gerenciar versões.
    - [Guia de Instalação](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
    
-2. **Vagrant** - Para provisionamento das máquinas virtuais.
-   - [Guia de Instalação](https://www.vagrantup.com/docs/installation)
+2. **Docker** - Para criar e gerenciar containers.
+   - [Guia de Instalação](https://docs.docker.com/get-docker/)
    
-3. **VirtualBox** - Para executar as máquinas virtuais criadas pelo Vagrant.
-   - [Guia de Instalação](https://www.virtualbox.org/wiki/Downloads)
-
+3. **Docker Compose** - Para definir e rodar os serviços Docker.
+   - [Guia de Instalação](https://docs.docker.com/compose/install/)
+   
 4. **VSCode** - Editor de texto recomendado para desenvolvimento.
    - [Guia de Instalação](https://code.visualstudio.com/)
 
@@ -29,65 +29,67 @@ git clone https://github.com/supercaixaai/supercaixaai.git
 cd supercaixaai
 ```
 
-### 2. Configuração do Ambiente com Vagrant
+### 2. Configuração do Ambiente com Docker
 
-O **SuperCaixa AI** utiliza **Vagrant** para provisionar o servidor e os PDVs (Pontos de Venda) em máquinas virtuais. Para configurar o ambiente:
+O **SuperCaixa AI** utiliza **Docker** para provisionar o servidor, os PDVs e o banco de dados Redis. Para configurar o ambiente:
 
-1. Certifique-se de que o **VirtualBox** está instalado.
-2. Execute o comando abaixo para iniciar o provisionamento das máquinas virtuais (servidor e dois PDVs):
+1. Certifique-se de que o **Docker** e o **Docker Compose** estão instalados corretamente.
+2. Execute o comando abaixo para iniciar os containers (servidor web, PDVs e banco de dados Redis):
 
    ```bash
-   vagrant up
+   docker-compose up -d
    ```
 
-Isso criará três máquinas virtuais:
-- **srv-sc01**: Servidor principal (Ubuntu).
-- **pdv-sc-001**: Primeiro PDV (Alpine Linux).
-- **pdv-sc-002**: Segundo PDV (Alpine Linux).
+Isso criará quatro containers:
+- **web_server**: O servidor web que roda o Nginx.
+- **pdv1**: Primeiro PDV (interface com Dialog).
+- **pdv2**: Segundo PDV (interface com Dialog).
+- **redis_db**: Banco de dados Redis utilizado para armazenar informações de usuários, mercadorias e promoções.
 
-### 3. Acessar as Máquinas Virtuais
+### 3. Acessar os Containers
 
-Após o provisionamento, você pode acessar as máquinas via SSH:
-
-- **Acessar o servidor**:
-  ```bash
-  vagrant ssh srv-sc01
-  ```
+Após subir os containers, você pode acessar cada um deles utilizando o comando `docker exec`. Aqui estão alguns exemplos:
 
 - **Acessar o PDV 1**:
   ```bash
-  vagrant ssh pdv-sc-001
+  docker exec -it pdv1 sh
   ```
 
 - **Acessar o PDV 2**:
   ```bash
-  vagrant ssh pdv-sc-002
+  docker exec -it pdv2 sh
   ```
 
-### 4. Atualizar as Máquinas Virtuais
-
-Durante o provisionamento, o sistema operacional de cada máquina é atualizado. Se precisar atualizar manualmente, siga os comandos abaixo:
-
-- **No servidor (Ubuntu)**:
+- **Acessar o banco de dados Redis**:
   ```bash
-  sudo apt update && sudo apt upgrade -y
+  docker exec -it redis_db redis-cli
   ```
 
-- **Nos PDVs (Alpine Linux)**:
+### 4. Inicializar o Sistema PDV
+
+Após acessar o container do PDV (pdv1 ou pdv2), inicie o sistema executando:
+
+```bash
+pdv
+```
+
+Isso abrirá a interface do **SuperCaixa AI** com todas as funcionalidades do PDV, como abrir caixa, consultar mercadorias e acessar o painel administrativo.
+
+### 5. Configurações Adicionais
+
+- **Configuração de Backup**: O sistema possui scripts automáticos de backup que salvam os dados do Redis em um diretório compartilhado `/backup` entre os containers.
+- **Promoções**: O sistema possui um monitoramento contínuo de promoções, que ajusta automaticamente os preços ao término das promoções definidas.
+
+### 6. Parar ou Remover os Containers
+
+Se precisar parar ou remover os containers, utilize os comandos abaixo:
+
+- **Parar os containers** (mantendo o estado):
   ```bash
-  sudo apk update && sudo apk upgrade
+  docker-compose stop
   ```
 
-### 5. Parar ou Destruir as Máquinas Virtuais
-
-Se precisar parar ou destruir as máquinas virtuais, utilize os comandos abaixo:
-
-- **Parar as máquinas** (mantendo o estado):
+- **Remover completamente os containers** (dados serão mantidos no volume compartilhado):
   ```bash
-  vagrant halt
-  ```
-
-- **Destruir as máquinas** (remover completamente):
-  ```bash
-  vagrant destroy
+  docker-compose down
   ```
