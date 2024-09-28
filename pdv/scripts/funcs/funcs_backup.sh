@@ -15,7 +15,7 @@ USUARIO=$(whoami)
 # Função para logar ações no arquivo de log
 log() {
   local MENSAGEM="$1"
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [Usuário: $USUARIO] [Script: $SCRIPT_NAME] $MENSAGEM" | tee -a "$LOG_FILE"
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [Usuário: $USUARIO] [Script: $SCRIPT_NAME] $MENSAGEM" >> "$LOG_FILE"
 }
 
 # Função para realizar backup do banco de dados Redis
