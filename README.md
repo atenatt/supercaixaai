@@ -7,10 +7,10 @@ Aqui estão os heróis tecnológicos que estão ajudando a colocar tudo em prát
 
 - **Golang** 🐹: O cérebro por trás do backend. Rápido e eficiente, ele é quem processa todas as vendas e faz a mágica acontecer nos bastidores.
 - **Shell Script** 🖥️: A linha de frente da automação. Precisa fazer as coisas rodarem sem erro? O Shell Script está aqui para isso, mexendo os pauzinhos de configuração.
-- **Docker e Kubernetes** 🐳: Esses caras vão ser os responsáveis por empacotar tudo direitinho e fazer o sistema rodar na nuvem sem complicações.
+- **Docker e Kubernetes (breve)** 🐳: Esses caras vão ser os responsáveis por empacotar tudo direitinho e fazer o sistema rodar na nuvem sem complicações.
 - **Redis DB** 🗄️: Eles são a memória do sistema. Tudo o que você vende, registra e armazena está seguro aqui.
 - **Nginx** 🚦: Controla o tráfego de dados como um guarda de trânsito, mantendo tudo fluindo suave como manteiga.
-- **AWS/EC2 e Terraform** ☁️: A dupla dinâmica para a infraestrutura na nuvem. Vão garantir que o **SuperCaixa AI** esteja online e funcionando onde quer que você precise.
+- **AWS/EC2 e Terraform (breve)** ☁️: A dupla dinâmica para a infraestrutura na nuvem. Vão garantir que o **SuperCaixa AI** esteja online e funcionando onde quer que você precise.
 
 ### O Caminho até a Glória (ou Deploy, como alguns chamam)
 Esse projeto não nasceu da noite para o dia. Cada etapa é um passo em direção ao sucesso do **SuperCaixa AI**. Dá uma olhada no que já foi feito e o que ainda vem por aí:
