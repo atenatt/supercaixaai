@@ -45,9 +45,8 @@ O diagrama abaixo representa a estrutura da Clean Architecture aplicada ao Super
 
 ### 6. **Infraestrutura como Código (IaC)**
 - Toda a infraestrutura do **SuperCaixa AI** será definida como código, utilizando ferramentas como:
-  - **Vagrant** (para o desenvolvimento inicial)
   - **Docker** e **Terraform** (para futuras expansões)
-  - **Ansible** (para automação de provisionamento)
+  - **Ansible (breve)** (para automação de provisionamento)
 - A infraestrutura será gerenciada de forma automatizada, garantindo consistência em todos os ambientes (desenvolvimento, staging, produção).
 
 ### 7. **DevOps e CI/CD**
