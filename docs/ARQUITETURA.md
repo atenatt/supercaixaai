@@ -49,7 +49,7 @@ O diagrama abaixo representa a estrutura da Clean Architecture aplicada ao Super
   - **Ansible (breve)** (para automação de provisionamento)
 - A infraestrutura será gerenciada de forma automatizada, garantindo consistência em todos os ambientes (desenvolvimento, staging, produção).
 
-### 7. **DevOps e CI/CD**
+### 7. **DevOps e CI/CD (breve)**
 - Implementamos pipelines de **CI/CD** para garantir que a integração e entrega contínuas sejam ágeis e seguras.
 - Usamos ferramentas como **GitHub Actions** ou **Jenkins** para executar testes automatizados e realizar deploys com confiança.
 - O monitoramento será feito com ferramentas como **Prometheus** e **Grafana**, enquanto o log de erros e eventos será tratado com o **ELK Stack**.
