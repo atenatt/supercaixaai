@@ -3,6 +3,8 @@
 # Variável global para saber se o administrador está autenticado
 ADMIN_AUTENTICADO=0
 
+source /etc/pdv/inciar_pdv.sh
+
 # Carregar todas as funções a partir de /etc/pdv/funcs/
 echo "Carregando funções automaticamente..."
 for func_script in /etc/pdv/funcs/*.sh; do
@@ -86,7 +88,7 @@ menu_administracao() {
 menu_principal() {
   while true; do
     OPCAO=$(dialog --stdout --menu "SuperCaixa AI - PDV" 25 50 9 \
-      1 "Abrir Caixa" \
+      1 "Iniciar PDV" \
       2 "Consultar Mercadoria" \
       3 "Futuramente" \
       4 "Futuramente" \
@@ -99,7 +101,7 @@ menu_principal() {
     [ $? -ne 0 ] && clear && break
 
     case $OPCAO in
-      1) abrir_caixa ;;
+      1) iniciar_pdv ;;
       2) consultar_mercadoria ;;
       8) menu_administracao ;;  # Acesso ao menu de administração
       9) clear && break ;;
