@@ -5,25 +5,25 @@ source /etc/pdv/funcs/funcs_logs.sh
 
 # Função para abrir o caixa (Operador e Fiscal)
 abrir_caixa() {
-  # Autentica o operador e captura o nome do usuário autenticado
+  # Autentica o operador e captura o nome do usuário autenticado via código
   autenticar_usuario "operador" || return 1
   USUARIO_ATUAL=$USUARIO
 
-  OPERADOR=$(dialog --stdout --inputbox "Nome do Operador:" 0 0)
-  [ $? -ne 0 ] && return
-
   # Registrar abertura do caixa no Redis
-  redis-cli -h $DB_HOST SET "caixa:$OPERADOR" "aberto"
-  dialog --msgbox "Caixa aberto para o operador $OPERADOR." 6 40
-
+  HORA_ATUAL=$(date '+%H:%M:%S')
+  redis-cli -h $DB_HOST SET "caixa:$USUARIO_ATUAL" "aberto"
+  
+  # Exibir mensagem de abertura com o nome e hora
+  dialog --msgbox "Caixa aberto para o operador $USUARIO_ATUAL.\nHorário: $HORA_ATUAL" 6 40
+  
   # Registrar log da ação de abertura de caixa
-  registrar_log "$USUARIO_ATUAL" "Abriu o caixa" "Operador: $OPERADOR"
+  registrar_log "$USUARIO_ATUAL" "Abriu o caixa" "Operador: $USUARIO_ATUAL às $HORA_ATUAL"
 }
 
 # Função para registrar venda
 registrar_venda() {
   # Verificar se o caixa está aberto
-  CAIXA_ABERTO=$(redis-cli -h $DB_HOST GET "caixa:$OPERADOR")
+  CAIXA_ABERTO=$(redis-cli -h $DB_HOST GET "caixa:$USUARIO_ATUAL")
   if [ "$CAIXA_ABERTO" != "aberto" ]; then
     dialog --msgbox "Caixa fechado! Por favor, abra o caixa antes de iniciar uma venda." 6 40
     return 1
@@ -106,16 +106,16 @@ finalizar_venda() {
 # Função para fechar o caixa (Operador e Fiscal)
 fechar_caixa() {
   # Verificar se o caixa está aberto
-  CAIXA_ABERTO=$(redis-cli -h $DB_HOST GET "caixa:$OPERADOR")
+  CAIXA_ABERTO=$(redis-cli -h $DB_HOST GET "caixa:$USUARIO_ATUAL")
   if [ "$CAIXA_ABERTO" != "aberto" ]; then
     dialog --msgbox "Caixa já está fechado!" 6 40
     return 1
   fi
 
   # Fechar o caixa e registrar log
-  redis-cli -h $DB_HOST DEL "caixa:$OPERADOR"
-  dialog --msgbox "Caixa fechado para o operador $OPERADOR." 6 40
+  redis-cli -h $DB_HOST DEL "caixa:$USUARIO_ATUAL"
+  dialog --msgbox "Caixa fechado para o operador $USUARIO_ATUAL." 6 40
 
   # Registrar log da ação de fechamento de caixa
-  registrar_log "$USUARIO_ATUAL" "Fechou o caixa" "Operador: $OPERADOR"
+  registrar_log "$USUARIO_ATUAL" "Fechou o caixa" "Operador: $USUARIO_ATUAL"
 }
