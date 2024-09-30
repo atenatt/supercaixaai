@@ -17,7 +17,7 @@ abrir_caixa() {
   dialog --msgbox "Caixa aberto para o operador $USUARIO_ATUAL.\nHorário: $HORA_ATUAL" 6 40
   
   # Registrar log da ação de abertura de caixa
-  registrar_log "$USUARIO_ATUAL" "Abriu o caixa" "Operador: $USUARIO_ATUAL às $HORA_ATUAL"
+  log_funcs "$USUARIO_ATUAL" "Abriu o caixa" "Operador: $USUARIO_ATUAL às $HORA_ATUAL"
 }
 
 # Função para registrar venda
@@ -100,7 +100,7 @@ finalizar_venda() {
   dialog --msgbox "Venda finalizada com sucesso!\nForma de Pagamento: $FORMA_PAGAMENTO" 6 40
 
   # Registrar log da ação de venda
-  registrar_log "$USUARIO_ATUAL" "Finalizou venda" "ID Venda: $ID_VENDA, Total: R$ $TOTAL_VENDA, Forma de Pagamento: $FORMA_PAGAMENTO"
+  log_funcs "$USUARIO_ATUAL" "Finalizou venda" "ID Venda: $ID_VENDA, Total: R$ $TOTAL_VENDA, Forma de Pagamento: $FORMA_PAGAMENTO"
 }
 
 # Função para fechar o caixa (Operador e Fiscal)
@@ -117,5 +117,5 @@ fechar_caixa() {
   dialog --msgbox "Caixa fechado para o operador $USUARIO_ATUAL." 6 40
 
   # Registrar log da ação de fechamento de caixa
-  registrar_log "$USUARIO_ATUAL" "Fechou o caixa" "Operador: $USUARIO_ATUAL"
+  log_funcs "$USUARIO_ATUAL" "Fechou o caixa" "Operador: $USUARIO_ATUAL"
 }
