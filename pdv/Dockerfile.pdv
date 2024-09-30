@@ -7,6 +7,7 @@ RUN apk add --no-cache redis dialog bash dos2unix bc openrc ncurses
 # Criando pasta que irá conter os arquivos de configuração do PDV
 RUN mkdir -p /etc/pdv/funcs
 RUN mkdir -p /etc/pdv/imgs
+RUN mkdir -p /var/log/vendas
 
 # Copiando os scripts PDV
 COPY /scripts/pdv_interface.sh /bin/pdv
