@@ -10,12 +10,15 @@ RUN mkdir -p /etc/pdv/funcs
 # Copiando os scripts PDV
 COPY /scripts/pdv_interface.sh /bin/pdv
 COPY /scripts/funcs/* /etc/pdv/funcs/
+COPY /scripts/iniciar_pdv.sh /bin/iniciar_pdv
 
 # Tornar os scripts executáveis
 RUN chmod +x /bin/pdv
 RUN chmod +x /etc/pdv/funcs/*
+RUN chmod +x /bin/iniciar_pdv
 
 # Converter o script para formato Unix
 RUN dos2unix /bin/pdv
 RUN dos2unix /etc/pdv/funcs/*
+RUN dos2unix /bin/iniciar_pdv
 
