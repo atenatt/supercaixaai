@@ -24,7 +24,8 @@ services:
       - DB_HOST=redis_db
     command: /bin/sh -c /etc/pdv/funcs/monitorar_promocoes.sh &
     volumes:
-      - redis_data:/data    
+      - redis_data:/data
+      - ./logs:/var/log
 
   pdv2:
     build:
@@ -38,6 +39,7 @@ services:
     command: /bin/sh -c /etc/pdv/funcs/monitorar_promocoes.sh &
     volumes:
       - redis_data:/data
+      - ./logs:/var/log
 
   redis_db:
     build:
