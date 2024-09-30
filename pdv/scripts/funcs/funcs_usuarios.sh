@@ -2,11 +2,11 @@
 
 source /etc/pdv/funcs/funcs_logs.sh
 
-# Função para validar código de usuário (6 dígitos numéricos)
+# Função para validar código de usuário (64 dígitos numéricos)
 validar_codigo() {
   local CODIGO="$1"
-  if ! echo "$CODIGO" | grep -E "^[0-9]{6}$" > /dev/null; then
-    dialog --msgbox "O código de usuário deve conter exatamente 6 dígitos numéricos." 6 40
+  if ! echo "$CODIGO" | grep -E "^[0-9]{4}$" > /dev/null; then
+    dialog --msgbox "O código de usuário deve conter exatamente 4 dígitos numéricos." 6 40
     return 1
   fi
   return 0
@@ -22,12 +22,12 @@ validar_nome() {
   return 0
 }
 
-# Função para validar senha (6 dígitos numéricos e diferente do código de usuário)
+# Função para validar senha (4 dígitos numéricos e diferente do código de usuário)
 validar_senha() {
   local SENHA="$1"
   local CODIGO="$2"
-  if ! echo "$SENHA" | grep -E "^[0-9]{6}$" > /dev/null; then
-    dialog --msgbox "A senha deve conter exatamente 6 dígitos numéricos." 6 40
+  if ! echo "$SENHA" | grep -E "^[0-9]{4}$" > /dev/null; then
+    dialog --msgbox "A senha deve conter exatamente 4 dígitos numéricos." 6 40
     return 1
   fi
   if [ "$SENHA" = "$CODIGO" ]; then
@@ -45,7 +45,7 @@ cadastrar_usuario() {
   fi
 
   while true; do
-    CODIGO=$(dialog --stdout --inputbox "Código do Usuário (6 dígitos numéricos):" 0 0)
+    CODIGO=$(dialog --stdout --inputbox "Código do Usuário (4 dígitos numéricos):" 0 0)
     [ $? -ne 0 ] && log_funcs "Cadastro de usuário cancelado." && return
     validar_codigo "$CODIGO" && break
   done
@@ -57,7 +57,7 @@ cadastrar_usuario() {
   done
 
   while true; do
-    SENHA=$(dialog --stdout --passwordbox "Senha do Usuário (6 dígitos numéricos):" 0 0)
+    SENHA=$(dialog --stdout --passwordbox "Senha do Usuário (4 dígitos numéricos):" 0 0)
     [ $? -ne 0 ] && log_funcs "Cadastro de usuário cancelado." && return
     validar_senha "$SENHA" "$CODIGO" && break
   done
