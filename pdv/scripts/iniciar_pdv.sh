@@ -1,12 +1,15 @@
 #!/bin/bash
 
+# Diretório e configuração dos logs
+LOG_DIR="/var/log/vendas"
+mkdir -p "$LOG_DIR"
+DATA=$(date '+%d-%m-%y')
+HORA=$(date '+%H:00')
+LOG_FILE="$LOG_DIR/${DATA}_${HORA}.log"
+
 # Caminho para salvar cupons
 CUPOM_DIR="/etc/pdv/cupons"
 mkdir -p "$CUPOM_DIR"
-
-# Log de venda
-LOG_FILE="/var/log/funcoes/vendas.log"
-mkdir -p /var/log/funcoes
 
 # Variáveis iniciais
 TOTAL_VENDA=0
@@ -14,6 +17,12 @@ ITEMS=""
 ID_VENDA=$(date '+%Y%m%d%H%M%S')
 OPERADOR=""
 FORM_PAGAMENTO=""
+
+# Função para logar ações no arquivo de log
+log_venda() {
+    local MENSAGEM="$1"
+    echo "[$(date '+%d-%m-%y %H:%M:%S')] [Operador: $OPERADOR] $MENSAGEM" >> "$LOG_FILE"
+}
 
 # Função para exibir o menu de opções ao pressionar ESC
 exibir_menu_opcoes() {
@@ -48,6 +57,7 @@ adicionar_produto() {
 
         if [ -z "$NOME" ]; then
             dialog --msgbox "Produto não encontrado!" 6 40
+            log_venda "Tentativa de registro de produto falhou. Produto com código $CODIGO não encontrado."
             continue
         fi
 
@@ -57,6 +67,7 @@ adicionar_produto() {
         # Verificar se há estoque
         if [ "$ESTOQUE" -le 0 ]; then
             dialog --msgbox "Estoque insuficiente!" 6 40
+            log_venda "Estoque insuficiente para o produto $NOME."
             continue
         fi
 
@@ -64,6 +75,7 @@ adicionar_produto() {
         NOVO_ESTOQUE=$((ESTOQUE - QUANTIDADE))
         if [ "$NOVO_ESTOQUE" -lt 0 ]; then
             dialog --msgbox "Quantidade solicitada excede o estoque disponível!" 6 40
+            log_venda "Tentativa de compra excede o estoque disponível. Produto: $NOME, Quantidade solicitada: $QUANTIDADE, Estoque disponível: $ESTOQUE."
             continue
         fi
 
@@ -77,11 +89,15 @@ adicionar_produto() {
 
         # Exibir tela de atualização da venda
         dialog --title "PDV - Venda em andamento" --msgbox "Produto adicionado: $NOME\nQuantidade: $QUANTIDADE\nSubtotal: R$ $TOTAL_VENDA" 10 50
+
+        # Registrar no log
+        log_venda "Produto adicionado à venda: $NOME, Quantidade: $QUANTIDADE, Valor: R$ $ITEM_TOTAL"
     done
 }
 
 # Função para cancelar compra
 cancelar_compra() {
+    log_venda "Compra cancelada pelo operador."
     dialog --msgbox "Compra cancelada." 6 40
     exit 0
 }
@@ -95,7 +111,8 @@ finalizar_venda() {
         3 "Pix")
 
     # Registrar no log
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [Operador: $OPERADOR] Venda finalizada. Total: R$ $TOTAL_VENDA. Forma de pagamento: $FORM_PAGAMENTO" >> "$LOG_FILE"
+    log_venda "Venda finalizada. Forma de pagamento: $FORM_PAGAMENTO. Total: R$ $TOTAL_VENDA"
+    log_venda "Itens da venda:\n$ITEMS"
 
     # Gerar cupom
     CUPOM_FILE="$CUPOM_DIR/cupom_$ID_VENDA.txt"
@@ -117,6 +134,7 @@ finalizar_venda() {
 iniciar_venda() {
     # Perguntar o código do operador
     OPERADOR=$(dialog --stdout --inputbox "Digite o código do operador:" 10 50)
+    log_venda "Operador $OPERADOR iniciou uma nova venda."
 
     # Exibir a tela de PDV e rodar o loop de vendas
     adicionar_produto
