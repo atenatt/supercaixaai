@@ -1,20 +1,23 @@
 #!/bin/sh
 
-# Carregar a função de log
 source /etc/pdv/funcs/funcs_logs.sh
 
 # Função para cadastrar mercadoria com todas as informações em uma única tela
 cadastrar_mercadoria() {
+  log_funcs "Iniciando cadastro de mercadoria."
+
   # Verifica se o administrador já está autenticado
   if [ "$ADMIN_AUTENTICADO" -ne 1 ]; then
     autenticar_usuario "admin" || return 1
   fi
 
+  log_funcs "Usuário autenticado com sucesso para cadastro de mercadoria."
+
   # Coletar os setores disponíveis
   SETORES=$(redis-cli -h $DB_HOST SMEMBERS "setores")
-
   if [ -z "$SETORES" ]; then
     dialog --msgbox "Nenhum setor cadastrado. Crie um setor antes de cadastrar uma mercadoria." 6 50
+    log_funcs "Tentativa de cadastro falhou: Nenhum setor cadastrado."
     return 1
   fi
 
@@ -33,11 +36,11 @@ cadastrar_mercadoria() {
     "Preço de Venda:" 5 1 "" 5 20 30 0 \
     "Estoque:" 6 1 "" 6 20 30 0)
 
-  [ $? -ne 0 ] && return
+  [ $? -ne 0 ] && log "Cadastro de mercadoria cancelado pelo usuário." && return
 
   # Selecionar o setor
   SETOR=$(dialog --stdout --menu "Selecione o setor:" 15 50 6 $OPCOES_SETORES)
-  [ $? -ne 0 ] && return
+  [ $? -ne 0 ] && log "Seleção de setor cancelada pelo usuário." && return
 
   # Separar os dados preenchidos
   NOME=$(echo "$DADOS" | sed -n 1p)
@@ -50,14 +53,15 @@ cadastrar_mercadoria() {
   # Verificar se os campos obrigatórios foram preenchidos
   if [ -z "$NOME" ] || [ -z "$GTIN" ] || [ -z "$CODIGO_INTERNO" ] || [ -z "$PRECO_VENDA" ]; then
     dialog --msgbox "Todos os campos obrigatórios (Nome, Código GTIN, Código Interno, Preço de Venda) devem ser preenchidos." 8 40
+    log_funcs "Cadastro de mercadoria falhou: Campos obrigatórios não preenchidos."
     return 1
   fi
 
   # Salvar os dados no Redis
   redis-cli -h $DB_HOST HMSET "mercadoria:$GTIN" nome "$NOME" codigo_interno "$CODIGO_INTERNO" preco_custo "$PRECO_CUSTO" preco_venda "$PRECO_VENDA" estoque "$ESTOQUE" setor "$SETOR"
-
+  
   # Registrar log da ação de cadastro de mercadoria
-  registrar_log "admin" "Cadastrou mercadoria" "Nome: $NOME, GTIN: $GTIN, Código Interno: $CODIGO_INTERNO, Preço: $PRECO_VENDA, Estoque: $ESTOQUE, Setor: $SETOR"
+  log_funcs "Cadastrou mercadoria: Nome: $NOME, GTIN: $GTIN, Código Interno: $CODIGO_INTERNO, Preço de Venda: $PRECO_VENDA, Estoque: $ESTOQUE, Setor: $SETOR"
 
   # Exibir mensagem de sucesso
   dialog --msgbox "Mercadoria cadastrada com sucesso no setor $SETOR!" 6 40
@@ -65,28 +69,34 @@ cadastrar_mercadoria() {
 
 # Função para consultar mercadoria (Fiscal e Admin)
 consultar_mercadoria() {
+  log_funcs "Iniciando consulta de mercadoria."
+
   # Verifica se o usuário é fiscal ou administrador
   autenticar_usuario "fiscal" || autenticar_usuario "admin" || return 1
 
   CODIGO=$(dialog --stdout --inputbox "Código GTIN ou Interno:" 0 0)
-  [ $? -ne 0 ] && return
+  [ $? -ne 0 ] && log "Consulta de mercadoria cancelada pelo usuário." && return
 
   # Buscar dados da mercadoria no Redis
   RESULTADO=$(redis-cli -h $DB_HOST HGETALL "mercadoria:$CODIGO")
 
   if [ -z "$RESULTADO" ]; then
     dialog --msgbox "Mercadoria não encontrada." 6 40
+    log_funcs "Mercadoria não encontrada: Código $CODIGO"
   else
     NOME=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" nome)
     PRECO_VENDA=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" preco_venda)
     ESTOQUE=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" estoque)
     SETOR=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" setor)
     dialog --msgbox "Nome: $NOME\nPreço de Venda: R$ $PRECO_VENDA\nEstoque: $ESTOQUE\nSetor: $SETOR" 10 50
+    log_funcs "Consulta de mercadoria: Nome: $NOME, Preço de Venda: $PRECO_VENDA, Estoque: $ESTOQUE, Setor: $SETOR"
   fi
 }
 
 # Função para consultar todas as mercadorias cadastradas com paginação
 consultar_todas_mercadorias() {
+  log_funcs "Consultando todas as mercadorias cadastradas."
+
   if [ "$ADMIN_AUTENTICADO" -ne 1 ]; then
     autenticar_usuario "admin" || return 1
   fi
@@ -96,6 +106,7 @@ consultar_todas_mercadorias() {
 
   if [ -z "$MERCADORIAS" ]; then
     dialog --msgbox "Nenhuma mercadoria cadastrada." 6 40
+    log_funcs "Nenhuma mercadoria cadastrada foi encontrada."
     return 1
   fi
 
@@ -124,8 +135,10 @@ consultar_todas_mercadorias() {
 
     if [ -z "$LISTAGEM" ]; then
       dialog --msgbox "Nenhuma mercadoria encontrada na página $PAGINA_ATUAL." 6 40
+      log_funcs "Nenhuma mercadoria encontrada na página $PAGINA_ATUAL."
     else
       dialog --msgbox "Mercadorias (Página $PAGINA_ATUAL de $PAGINAS): $LISTAGEM" 15 70
+      log_funcs "Consulta de mercadorias na página $PAGINA_ATUAL."
     fi
 
     if [ $PAGINA_ATUAL -lt $PAGINAS ]; then
@@ -142,6 +155,8 @@ consultar_todas_mercadorias() {
 
 # Função para editar uma mercadoria existente
 editar_mercadoria() {
+  log_funcs "Iniciando edição de mercadoria."
+
   # Verifica se o administrador já está autenticado
   if [ "$ADMIN_AUTENTICADO" -ne 1 ]; then
     autenticar_usuario "admin" || return 1
@@ -149,14 +164,13 @@ editar_mercadoria() {
 
   # Solicita o código GTIN ou Interno da mercadoria a ser editada
   CODIGO=$(dialog --stdout --inputbox "Código GTIN ou Interno da mercadoria a ser editada:" 0 0)
-  [ $? -ne 0 ] && return
+  [ $? -ne 0 ] && log_fucs "Edição de mercadoria cancelada pelo usuário." && return
 
   # Buscar dados da mercadoria no Redis
   MERCADORIA_EXISTENTE=$(redis-cli -h $DB_HOST EXISTS "mercadoria:$CODIGO")
   if [ "$MERCADORIA_EXISTENTE" -eq 0 ]; then
     dialog --msgbox "Mercadoria não encontrada!" 6 40
-    # Registrar log de tentativa de edição de mercadoria não encontrada
-    registrar_log "admin" "Tentou editar mercadoria" "Mercadoria não encontrada: Código $CODIGO"
+    log_funcs "Tentativa de edição falhou: Mercadoria não encontrada - Código: $CODIGO."
     return 1
   fi
 
@@ -185,7 +199,7 @@ editar_mercadoria() {
   redis-cli -h $DB_HOST HMSET "mercadoria:$CODIGO" nome "$NOVO_NOME" preco_custo "$NOVO_PRECO_CUSTO" preco_venda "$NOVO_PRECO_VENDA" estoque "$NOVO_ESTOQUE"
 
   # Registrar log da ação de edição de mercadoria
-  registrar_log "admin" "Editou mercadoria" "Código: $CODIGO, Nome: $NOVO_NOME, Preço de Venda: $NOVO_PRECO_VENDA, Estoque: $NOVO_ESTOQUE"
+  log_funcs "Editou mercadoria: Código: $CODIGO, Nome: $NOVO_NOME, Preço de Venda: $NOVO_PRECO_VENDA, Estoque: $NOVO_ESTOQUE."
 
   # Exibir mensagem de sucesso
   dialog --msgbox "Mercadoria $NOVO_NOME atualizada com sucesso!" 6 40
@@ -193,13 +207,15 @@ editar_mercadoria() {
 
 # Função para excluir mercadoria (Somente Admin)
 excluir_mercadoria() {
+  log_funcs "Iniciando exclusão de mercadoria."
+
   # Verifica se o administrador já está autenticado
   if [ "$ADMIN_AUTENTICADO" -ne 1 ]; then
     autenticar_usuario "admin" || return 1
   fi
 
   CODIGO=$(dialog --stdout --inputbox "Código GTIN ou Interno a ser excluído:" 0 0)
-  [ $? -ne 0 ] && return
+  [ $? -ne 0 ] && log_funcs "Exclusão de mercadoria cancelada pelo usuário." && return
 
   # Confirmação antes de excluir a mercadoria
   dialog --yesno "Deseja excluir a mercadoria $CODIGO?" 7 40
@@ -209,8 +225,7 @@ excluir_mercadoria() {
   MERCADORIA_EXISTENTE=$(redis-cli -h $DB_HOST EXISTS "mercadoria:$CODIGO")
   if [ "$MERCADORIA_EXISTENTE" -eq 0 ]; then
     dialog --msgbox "Mercadoria não encontrada!" 6 40
-    # Registrar log de tentativa de exclusão de mercadoria não encontrada
-    registrar_log "admin" "Tentou excluir mercadoria" "Mercadoria não encontrada: Código $CODIGO"
+    log_funcs "Tentativa de exclusão falhou: Mercadoria não encontrada - Código: $CODIGO."
     return 1
   fi
 
@@ -218,9 +233,8 @@ excluir_mercadoria() {
   redis-cli -h $DB_HOST DEL "mercadoria:$CODIGO"
 
   # Registrar log da ação de exclusão de mercadoria
-  registrar_log "admin" "Excluiu mercadoria" "Código: $CODIGO"
+  log_funcs "Excluiu mercadoria: Código: $CODIGO."
 
   # Exibir mensagem de sucesso
   dialog --msgbox "Mercadoria excluída!" 6 40
 }
-
