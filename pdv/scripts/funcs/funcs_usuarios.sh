@@ -2,6 +2,84 @@
 
 source /etc/pdv/funcs/funcs_logs.sh
 
+# Função para validar código de usuário (6 dígitos numéricos)
+validar_codigo() {
+  local CODIGO="$1"
+  if ! echo "$CODIGO" | grep -E "^[0-9]{6}$" > /dev/null; then
+    dialog --msgbox "O código de usuário deve conter exatamente 6 dígitos numéricos." 6 40
+    return 1
+  fi
+  return 0
+}
+
+# Função para validar nome de usuário (somente letras)
+validar_nome() {
+  local NOME="$1"
+  if ! echo "$NOME" | grep -E "^[a-zA-Z]+$" > /dev/null; then
+    dialog --msgbox "O nome do usuário deve conter apenas letras." 6 40
+    return 1
+  fi
+  return 0
+}
+
+# Função para validar senha (6 dígitos numéricos e diferente do código de usuário)
+validar_senha() {
+  local SENHA="$1"
+  local CODIGO="$2"
+  if ! echo "$SENHA" | grep -E "^[0-9]{6}$" > /dev/null; then
+    dialog --msgbox "A senha deve conter exatamente 6 dígitos numéricos." 6 40
+    return 1
+  fi
+  if [ "$SENHA" = "$CODIGO" ]; then
+    dialog --msgbox "A senha não pode ser igual ao código do usuário." 6 40
+    return 1
+  fi
+  return 0
+}
+
+# Função para cadastrar usuário
+cadastrar_usuario() {
+  # Verifica se o administrador já está autenticado
+  if [ "$ADMIN_AUTENTICADO" -ne 1 ]; then
+    autenticar_usuario "admin" || return 1
+  fi
+
+  while true; do
+    CODIGO=$(dialog --stdout --inputbox "Código do Usuário (6 dígitos numéricos):" 0 0)
+    [ $? -ne 0 ] && log_funcs "Cadastro de usuário cancelado." && return
+    validar_codigo "$CODIGO" && break
+  done
+
+  while true; do
+    USUARIO=$(dialog --stdout --inputbox "Nome do Usuário (apenas letras):" 0 0)
+    [ $? -ne 0 ] && log_funcs "Cadastro de usuário cancelado." && return
+    validar_nome "$USUARIO" && break
+  done
+
+  while true; do
+    SENHA=$(dialog --stdout --passwordbox "Senha do Usuário (6 dígitos numéricos):" 0 0)
+    [ $? -ne 0 ] && log_funcs "Cadastro de usuário cancelado." && return
+    validar_senha "$SENHA" "$CODIGO" && break
+  done
+
+  ROLE=$(dialog --stdout --menu "Função do Usuário:" 10 50 3 \
+    1 "admin" \
+    2 "fiscal" \
+    3 "operador")
+  
+  case $ROLE in
+    1) ROLE="admin" ;;
+    2) ROLE="fiscal" ;;
+    3) ROLE="operador" ;;
+  esac
+
+  # Salvar no Redis
+  redis-cli -h $DB_HOST HMSET "usuario:$CODIGO" nome "$USUARIO" senha "$SENHA" role "$ROLE"
+  log_funcs "Usuário $USUARIO (Código: $CODIGO) cadastrado com sucesso com a função $ROLE."
+
+  dialog --msgbox "Usuário $USUARIO (Código: $CODIGO) cadastrado com sucesso!" 6 40
+}
+
 # Função para autenticar o usuário
 autenticar_usuario() {
   ROLE_REQUERIDA="$1"
@@ -40,37 +118,6 @@ autenticar_usuario() {
   return 0
 }
 
-# Função para cadastrar usuário
-cadastrar_usuario() {
-  # Verifica se o administrador já está autenticado
-  if [ "$ADMIN_AUTENTICADO" -ne 1 ]; then
-    autenticar_usuario "admin" || return 1
-  fi
-
-  USUARIO=$(dialog --stdout --inputbox "Nome do Usuário:" 0 0)
-  [ $? -ne 0 ] && log_funcs "Cadastro de usuário cancelado." && return
-
-  SENHA=$(dialog --stdout --passwordbox "Senha do Usuário:" 0 0)
-  [ $? -ne 0 ] && log_funcs "Cadastro de usuário cancelado." && return
-
-  ROLE=$(dialog --stdout --menu "Função do Usuário:" 10 50 3 \
-    1 "admin" \
-    2 "fiscal" \
-    3 "operador")
-  
-  case $ROLE in
-    1) ROLE="admin" ;;
-    2) ROLE="fiscal" ;;
-    3) ROLE="operador" ;;
-  esac
-
-  # Salvar no Redis
-  redis-cli -h $DB_HOST HMSET "usuario:$USUARIO" nome "$USUARIO" senha "$SENHA" role "$ROLE"
-  log_funcs "Usuário $USUARIO cadastrado com sucesso com a função $ROLE."
-
-  dialog --msgbox "Usuário $USUARIO cadastrado com sucesso!" 6 40
-}
-
 # Função para excluir qualquer usuário, exceto o admin
 excluir_usuario() {
   # Verifica se o administrador já está autenticado
@@ -78,7 +125,7 @@ excluir_usuario() {
     autenticar_usuario "admin" || return 1
   fi
 
-  USUARIO=$(dialog --stdout --inputbox "Nome do usuário a ser excluído:" 0 0)
+  USUARIO=$(dialog --stdout --inputbox "Código do usuário a ser excluído:" 0 0)
   [ $? -ne 0 ] && log_funcs "Exclusão de usuário cancelada." && return
 
   if [ "$USUARIO" = "admin" ]; then
