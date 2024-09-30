@@ -23,7 +23,7 @@ monitorar_promocoes() {
         redis-cli -h $DB_HOST HDEL "mercadoria:$CODIGO" preco_original
 
         # Registrar log da expiração
-        registrar_log "admin" "Promoção expirada" "Produto: $CODIGO, Preço restaurado para $PRECO_ORIGINAL"
+        log_funcs "admin" "Promoção expirada" "Produto: $CODIGO, Preço restaurado para $PRECO_ORIGINAL"
       fi
     done
 
