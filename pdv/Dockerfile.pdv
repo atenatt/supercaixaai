@@ -8,6 +8,7 @@ RUN apk add --no-cache redis dialog bash dos2unix bc openrc ncurses
 RUN mkdir -p /etc/pdv/funcs
 RUN mkdir -p /etc/pdv/imgs
 RUN mkdir -p /var/log/vendas
+RUN mkdir -p /etc/pdv/cupons
 
 # Copiando os scripts PDV
 COPY /scripts/pdv_interface.sh /bin/pdv
