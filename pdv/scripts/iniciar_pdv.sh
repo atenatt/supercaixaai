@@ -443,37 +443,58 @@ desenhar_interface() {
   return $retorno
 }
 
-# Função para cancelar a compra
+# Função para salvar e cancelar a compra
 cancelar_compra() {
-  # Gerar número de cupom
+  # Gerar número de cupom com base na data/hora e operador
   NUM_CUPOM=$(date '+%Y%m%d%H%M%S')_"$OPERADOR"
-
-  # Salvar cupom de cancelamento em /etc/pdv e /etc/pdv/cupons
-  CUPOM_FILE="/etc/pdv/$NUM_CUPOM_compra_cancelada.txt"
-  CUPOM_CUPONS="/etc/pdv/cupons/$NUM_CUPOM_compra_cancelada.txt"
 
   # Montar os itens para o cupom
   ITENS_CUPOM=""
-  local index=1
   for item in "${ITENS_VENDA[@]}"; do
-    ITENS_CUPOM+="$(printf "%-6s %-20s\n" "$index" "$item")"
-    index=$((index + 1))
+    # Simplesmente adicionar os itens já com os índices gerados pela venda
+    ITENS_CUPOM+="$item\n"
   done
 
-  echo -e "======================= PDV =======================\nCUPOM: $NUM_CUPOM\nCOMPRA CANCELADA\nNúmero  Produto              Quantidade          Valor\n--------------------------------------------------------------------------\n$ITENS_CUPOM--------------------------------------------------------------------------\nSubtotal: R\$ $TOTAL_VENDA\n==================================================\nOperador: $NOME_OPERADOR                               Horário: $HORARIO\n==================================================" > "$CUPOM_FILE"
+  # Se não houver itens, não deve gerar o cupom
+  if [ -z "$ITENS_CUPOM" ]; then
+    dialog --msgbox "Nenhum item adicionado. A compra não pode ser cancelada." 6 40
+    return
+  fi
 
-  # Copiar o cupom para o diretório /etc/pdv/cupons
-  cp "$CUPOM_FILE" "$CUPOM_CUPONS"
+  # Garantir que o diretório de cupons exista
+  if [ ! -d "/etc/pdv/cupons" ]; then
+    mkdir -p "/etc/pdv/cupons"
+    # Verificar se o diretório foi criado com sucesso
+    if [ $? -ne 0 ]; then
+      dialog --msgbox "Erro ao criar o diretório de cupons. Verifique as permissões." 6 40
+      return
+    fi
+  fi
 
-  # Registrar no Redis
-  redis-cli -h $DB_HOST HMSET "compra:$NUM_CUPOM" status "cancelada" operador "$OPERADOR" total "$TOTAL_VENDA" itens "$ITENS_CUPOM"
+  # Salvar cupom de cancelamento em /etc/pdv/cupons com o nome correto
+  CUPOM_CUPONS="/etc/pdv/cupons/${NUM_CUPOM}_compra_cancelada.txt"
 
-  registrar_log "$NOME_OPERADOR" "Compra Cancelada" "Compra cancelada e cupom salvo em $CUPOM_FILE e $CUPOM_CUPONS"
+  # Montar o conteúdo do cupom com as quebras de linha adequadas
+  echo -e "======================= PDV =======================\nCUPOM: $NUM_CUPOM\nCOMPRA CANCELADA\nNúmero  Produto              Quantidade          Valor\n--------------------------------------------------------------------------\n$ITENS_CUPOM--------------------------------------------------------------------------\nSubtotal: R\$ $TOTAL_VENDA\n==================================================\nOperador: $NOME_OPERADOR                               Horário: $(date '+%d/%m %H:%M:%S')\n==================================================" > "$CUPOM_CUPONS"
+
+  # Verificar se o arquivo foi criado corretamente
+  if [ ! -f "$CUPOM_CUPONS" ]; then
+    dialog --msgbox "Erro ao salvar o cupom. Verifique as permissões do diretório." 6 40
+    return
+  fi
+
+  # Registrar no Redis com as quebras de linha apropriadas para garantir a formatação ao recuperar
+  redis-cli -h $DB_HOST HMSET "compra:$NUM_CUPOM" status "cancelada" operador "$OPERADOR" total "$TOTAL_VENDA" itens "$(echo "$ITENS_CUPOM" | sed ':a;N;$!ba;s/\n/\\n/g')"
+
+  registrar_log "$NOME_OPERADOR" "Compra Cancelada" "Compra cancelada e cupom salvo em $CUPOM_CUPONS"
 
   # Resetar variáveis e voltar para a tela de vendas
   TOTAL_VENDA=0
   ITENS_VENDA=()
   MODO="produto"
+
+  # Exibir mensagem com o número do cupom cancelado
+  dialog --msgbox "Compra cancelada com sucesso.\nNúmero do cupom: $NUM_CUPOM" 6 50
 }
 
 # Função para processar o pagamento
@@ -554,8 +575,8 @@ finalizar_compra() {
   dialog --msgbox "Total da compra: R\$ $TOTAL_VENDA\nPagamento:\n$METODOS_PAGAMENTO\nObrigado pela compra!" 15 50
   registrar_log "$NOME_OPERADOR" "Finalizou Venda" "Total: R\$ $TOTAL_VENDA | Pagamento: $METODOS_PAGAMENTO"
 
-  # Salvar cupom de venda em /etc/pdv/vendas e /etc/pdv/cupons
-  CUPOM_FILE="/etc/pdv/vendas/$NUM_CUPOM_cupom.txt"
+  # Salvar cupom de venda em /etc/pdv/cupons e /etc/pdv/cupons
+  CUPOM_FILE="/etc/pdv/cupons/$NUM_CUPOM_cupom.txt"
   CUPOM_CUPONS="/etc/pdv/cupons/$NUM_CUPOM_cupom.txt"
 
   # Montar os itens para o cupom
@@ -587,95 +608,43 @@ finalizar_compra() {
 
 # Função para recuperar cupom cancelado
 recuperar_cupom() {
-  # Solicitar o critério de busca
-  criterio=$(dialog --clear --backtitle "Recuperar Cupom" --title "Critério de Busca" \
-    --menu "Escolha o critério para buscar o cupom cancelado:" 15 50 3 \
-    1 "Número do Cupom" \
-    2 "Nome do Operador" \
-    3 "Valor da Compra" \
-    2>&1 1>/dev/tty)
+  # Solicitar o número do cupom
+  NUM_CUPOM=$(dialog --stdout --inputbox "Digite o número do cupom:" 8 40)
+  NUM_CUPOM=$(echo "$NUM_CUPOM" | sed 's/[^0-9_]//g')
 
-  case $criterio in
-    1)
-      # Buscar por número do cupom
-      NUM_CUPOM=$(dialog --stdout --inputbox "Digite o número do cupom:" 8 40)
-      NUM_CUPOM=$(echo "$NUM_CUPOM" | sed 's/[^0-9_]//g')
-      ;;
-    2)
-      # Buscar por nome do operador
-      NOME_OP=$(dialog --stdout --inputbox "Digite o nome do operador:" 8 40)
-      NOME_OP=$(echo "$NOME_OP" | sed 's/[^a-zA-Z ]//g')
-      ;;
-    3)
-      # Buscar por valor da compra
-      VALOR_COMPRA=$(dialog --stdout --inputbox "Digite o valor da compra:" 8 40)
-      VALOR_COMPRA=$(echo "$VALOR_COMPRA" | sed 's/[^0-9.]//g')
-      ;;
-    *)
-      # Cancelou
-      return
-      ;;
-  esac
+  # Tentar encontrar o cupom no Redis
+  CUPOM_ENCONTRADO=$(redis-cli -h $DB_HOST EXISTS "compra:$NUM_CUPOM")
+  if [ "$CUPOM_ENCONTRADO" -eq 1 ]; then
+    ITENS=$(redis-cli -h $DB_HOST HGET "compra:$NUM_CUPOM" itens | sed 's/\\n/\n/g')
+    TOTAL=$(redis-cli -h $DB_HOST HGET "compra:$NUM_CUPOM" total)
 
-  # Procurar cupons cancelados no Redis
-  CUPONS_ENCONTRADOS=()
-  for key in $(redis-cli -h $DB_HOST KEYS "compra:*"); do
-    STATUS=$(redis-cli -h $DB_HOST HGET "$key" status)
-    if [ "$STATUS" == "cancelada" ]; then
-      MATCH=0
-      if [ "$criterio" -eq 1 ]; then
-        if [ "${key##compra:}" == "$NUM_CUPOM" ]; then
-          MATCH=1
-        fi
-      elif [ "$criterio" -eq 2 ]; then
-        OPERADOR_NOME=$(redis-cli -h $DB_HOST HGET "$key" operador)
-        if [ "$OPERADOR_NOME" == "$OPERADOR" ]; then
-          MATCH=1
-        fi
-      elif [ "$criterio" -eq 3 ]; then
-        TOTAL=$(redis-cli -h $DB_HOST HGET "$key" total)
-        if (( $(echo "$TOTAL == $VALOR_COMPRA" | bc -l) )); then
-          MATCH=1
-        fi
-      fi
-      if [ "$MATCH" -eq 1 ]; then
-        CUPONS_ENCONTRADOS+=("$key")
-      fi
-    fi
-  done
-
-  if [ ${#CUPONS_ENCONTRADOS[@]} -eq 0 ]; then
-    dialog --msgbox "Nenhum cupom encontrado." 6 40
-    return
-  elif [ ${#CUPONS_ENCONTRADOS[@]} -gt 1 ]; then
-    dialog --msgbox "Mais de um cupom encontrado, favor especificar." 6 60
-    return
-  else
-    # Recuperar o cupom
-    CUPOM_KEY="${CUPONS_ENCONTRADOS[0]}"
-    ITENS=$(redis-cli -h $DB_HOST HGET "$CUPOM_KEY" itens)
-    TOTAL=$(redis-cli -h $DB_HOST HGET "$CUPOM_KEY" total)
-
-    # Carregar os itens na venda atual
+    # Carregar os itens na venda atual sem reindexá-los
     IFS=$'\n' read -rd '' -a ITENS_VENDA <<<"$ITENS"
-
-    # Atualizar o total
     TOTAL_VENDA="$TOTAL"
 
-    # Deletar o cupom cancelado
-    redis-cli -h $DB_HOST DEL "$CUPOM_KEY"
+    dialog --msgbox "Cupom recuperado com sucesso!" 6 40
+    registrar_log "$NOME_OPERADOR" "Recuperar Cupom" "Cupom $NUM_CUPOM recuperado."
+    return
+  fi
 
-    # Remover o arquivo de cupom em /etc/pdv/cupons
-    NUM_CUPOM_RECUPERADO="${CUPOM_KEY##compra:}"
-    rm -f "/etc/pdv/cupons/${NUM_CUPOM_RECUPERADO}_compra_cancelada.txt"
+  # Caso não encontre no Redis, verificar no diretório de cupons
+  if [ -f "/etc/pdv/cupons/${NUM_CUPOM}_compra_cancelada.txt" ]; then
+    ITENS_CUPOM=$(grep -A 100 "Produto" "/etc/pdv/cupons/${NUM_CUPOM}_compra_cancelada.txt" | sed '1d')
+
+    # Carregar os itens na venda atual sem reindexá-los
+    IFS=$'\n' read -rd '' -a ITENS_VENDA <<<"$ITENS_CUPOM"
+    
+    # Atualizar o subtotal com base nos itens recuperados
+    recalcular_subtotal
 
     dialog --msgbox "Cupom recuperado com sucesso!" 6 40
-    registrar_log "$NOME_OPERADOR" "Recuperar Cupom" "Cupom $NUM_CUPOM_RECUPERADO recuperado."
+    registrar_log "$NOME_OPERADOR" "Recuperar Cupom" "Cupom $NUM_CUPOM recuperado do arquivo."
+  else
+    dialog --msgbox "Nenhum cupom encontrado." 6 40
   fi
 }
 
 # Verificar se os diretórios de vendas e cupons existem, se não, criar
-[ ! -d "/etc/pdv/vendas" ] && mkdir -p "/etc/pdv/vendas"
 [ ! -d "/etc/pdv/cupons" ] && mkdir -p "/etc/pdv/cupons"
 
 # Iniciar o log
