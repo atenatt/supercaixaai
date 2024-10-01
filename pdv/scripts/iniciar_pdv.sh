@@ -1,144 +1,145 @@
 #!/bin/bash
 
-# Diretório e configuração dos logs
-LOG_DIR="/var/log/vendas"
-mkdir -p "$LOG_DIR"
-DATA=$(date '+%d-%m-%y')
-HORA=$(date '+%H:00')
-LOG_FILE="$LOG_DIR/${DATA}_${HORA}.log"
+# Carregar a função de log
+source /etc/pdv/funcs/funcs_logs.sh
 
-# Caminho para salvar cupons
-CUPOM_DIR="/etc/pdv/cupons"
-mkdir -p "$CUPOM_DIR"
-
-# Variáveis iniciais
+# Definir variáveis globais
 TOTAL_VENDA=0
-ITEMS=""
-ID_VENDA=$(date '+%Y%m%d%H%M%S')
+ITENS_VENDA=""
 OPERADOR=""
-FORM_PAGAMENTO=""
+HORARIO=$(date '+%d-%m-%Y %H:%M:%S')
+DB_HOST="redis_db"
 
-# Função para logar ações no arquivo de log
-log_venda() {
-    local MENSAGEM="$1"
-    echo "[$(date '+%d-%m-%y %H:%M:%S')] [Operador: $OPERADOR] $MENSAGEM" >> "$LOG_FILE"
+# Função para desenhar a interface de vendas
+desenhar_interface() {
+  clear
+  dialog_output=$(dialog --clear --backtitle "Vendas" --title "================ PDV ================" \
+    --inputbox "Produto\tQuantidade\tValor\n----------------------------------------\n$ITENS_VENDA\n----------------------------------------\nSubtotal: R\$ $TOTAL_VENDA\n========================================\nOperador: $OPERADOR Horário: $HORARIO\n========================================\n$1" 20 60 2>&1 1>/dev/tty)
+
+  # Depuração: Mostrar entrada bruta do dialog
+  #>&2 echo "Debug: dialog_output antes da limpeza: '$dialog_output'"
+
+  # Limpar caracteres indesejados, como apóstrofos e espaços extras
+  dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
+
+  # Depuração: Mostrar o valor após a limpeza
+  #>&2 echo "Debug: dialog_output depois da limpeza: '$dialog_output'"
+
+  echo "$dialog_output"
 }
 
-# Função para exibir o menu de opções ao pressionar ESC
-exibir_menu_opcoes() {
-    opcao=$(dialog --stdout --menu "Opções" 10 40 3 \
-        1 "Finalizar compra" \
-        2 "Cancelar compra" \
-        3 "Continuar compra")
+# Função para autenticar o operador diretamente na interface de vendas
+autenticar_operador() {
+  while true; do
+    # Solicitar o código do operador na interface principal
+    OPERADOR=$(desenhar_interface "Digite o código do Operador:")
+    #>&2 echo "Debug: Valor do Operador: '$OPERADOR'"
+    #sleep 3
 
-    case $opcao in
-        1) finalizar_venda ;;
-        2) cancelar_compra ;;
-        3) adicionar_produto ;;
-    esac
+    # Remover possíveis caracteres inesperados ou espaços em branco
+    OPERADOR=$(echo "$OPERADOR" | sed 's/[^0-9]//g')
+    #>&2 echo "Debug: Valor do Operador depois de limpeza: '$OPERADOR'"
+
+    if [ -z "$OPERADOR" ]; then
+      desenhar_interface "O código do operador não pode estar vazio!"
+      continue
+    fi
+
+    # Verificar se o operador existe no Redis
+    OPERADOR_EXISTE=$(redis-cli -h $DB_HOST EXISTS "usuario:$OPERADOR")
+    >&2 echo "Debug: Valor de OPERADOR_EXISTE = '$OPERADOR_EXISTE'"
+
+    if [ "$OPERADOR_EXISTE" -ne 1 ]; then
+      desenhar_interface "Operador não encontrado!"
+      continue
+    fi
+
+    # Solicitar a senha na interface principal
+    SENHA=$(desenhar_interface "Digite a senha do Operador:")
+    SENHA=$(echo "$SENHA" | sed 's/[^0-9]//g')  # Limpar possíveis espaços
+    SENHA_CORRETA=$(redis-cli -h $DB_HOST HGET "usuario:$OPERADOR" senha)
+
+    >&2 echo "Debug: SENHA_CORRETA do Redis: '$SENHA_CORRETA'"
+
+    if [ "$SENHA" != "$SENHA_CORRETA" ]; then
+      desenhar_interface "Senha incorreta!"
+      continue
+    fi
+
+    # Se a autenticação for bem-sucedida, sair do loop
+    desenhar_interface "Operador logado com sucesso!"
+    registrar_log "$OPERADOR" "Login" "Operador logado com sucesso."
+    break
+  done
 }
 
-# Função para adicionar produtos
-adicionar_produto() {
-    while true; do
-        # Solicitar código do produto
-        CODIGO=$(dialog --stdout --inputbox "Digite o código do produto ou pressione ESC para opções:" 10 50)
+# Função para capturar o código do produto e a quantidade diretamente na interface de vendas
+capturar_input_produto() {
+  while true; do
+    # Solicitar o código do produto na interface principal
+    CODIGO_PRODUTO=$(desenhar_interface "Digite o código do produto ou pressione ESC para finalizar:")
 
-        # Verifica se o usuário pressionou ESC
-        if [ $? -ne 0 ]; then
-            exibir_menu_opcoes
-            continue
-        fi
+    # Se o operador pressionar "ESC", finalizar a compra
+    if [ "$CODIGO_PRODUTO" == "ESC" ]; then
+      finalizar_compra
+      break
+    fi
 
-        # Verificar se o produto existe no Redis
-        NOME=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" nome)
-        PRECO=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" preco_venda)
-        ESTOQUE=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO" estoque)
+    # Verificar se o produto existe no Redis
+    NOME_PRODUTO=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO_PRODUTO" nome)
+    PRECO_PRODUTO=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO_PRODUTO" preco_venda)
+    ESTOQUE=$(redis-cli -h $DB_HOST HGET "mercadoria:$CODIGO_PRODUTO" estoque)
 
-        if [ -z "$NOME" ]; then
-            dialog --msgbox "Produto não encontrado!" 6 40
-            log_venda "Tentativa de registro de produto falhou. Produto com código $CODIGO não encontrado."
-            continue
-        fi
+    if [ -z "$NOME_PRODUTO" ]; then
+      desenhar_interface "Produto não encontrado!"
+      continue
+    fi
 
-        # Solicitar quantidade do produto
-        QUANTIDADE=$(dialog --stdout --inputbox "Digite a quantidade para o produto $NOME:" 10 50)
+    # Solicitar a quantidade do produto na interface principal
+    QUANTIDADE=$(desenhar_interface "Digite a quantidade para o produto $NOME_PRODUTO (Estoque disponível: $ESTOQUE):")
+    if [ $? -ne 0 ]; then
+      continue
+    fi
 
-        # Verificar se há estoque
-        if [ "$ESTOQUE" -le 0 ]; then
-            dialog --msgbox "Estoque insuficiente!" 6 40
-            log_venda "Estoque insuficiente para o produto $NOME."
-            continue
-        fi
+    # Verificar se há estoque suficiente
+    if [ "$QUANTIDADE" -gt "$ESTOQUE" ]; then
+      desenhar_interface "Quantidade maior do que o disponível em estoque!"
+      continue
+    fi
 
-        # Verificar se a quantidade solicitada não excede o estoque
-        NOVO_ESTOQUE=$((ESTOQUE - QUANTIDADE))
-        if [ "$NOVO_ESTOQUE" -lt 0 ]; then
-            dialog --msgbox "Quantidade solicitada excede o estoque disponível!" 6 40
-            log_venda "Tentativa de compra excede o estoque disponível. Produto: $NOME, Quantidade solicitada: $QUANTIDADE, Estoque disponível: $ESTOQUE."
-            continue
-        fi
+    # Calcular subtotal do item
+    SUBTOTAL_ITEM=$(echo "$PRECO_PRODUTO * $QUANTIDADE" | bc)
+    TOTAL_VENDA=$(echo "$TOTAL_VENDA + $SUBTOTAL_ITEM" | bc)
 
-        # Atualizar estoque no Redis
-        redis-cli -h $DB_HOST HSET "mercadoria:$CODIGO" estoque "$NOVO_ESTOQUE"
+    # Adicionar o item à lista de venda
+    ITENS_VENDA+="$NOME_PRODUTO\t$QUANTIDADE\tR\$ $SUBTOTAL_ITEM\n"
 
-        # Calcular total e atualizar a venda
-        ITEM_TOTAL=$(echo "$PRECO * $QUANTIDADE" | bc)
-        TOTAL_VENDA=$(echo "$TOTAL_VENDA + $ITEM_TOTAL" | bc)
-        ITEMS="$ITEMS\nProduto: $NOME | Quantidade: $QUANTIDADE | Valor: R$ $ITEM_TOTAL"
+    # Atualizar o estoque no Redis
+    redis-cli -h $DB_HOST HINCRBY "mercadoria:$CODIGO_PRODUTO" estoque -"$QUANTIDADE"
 
-        # Exibir tela de atualização da venda
-        dialog --title "PDV - Venda em andamento" --msgbox "Produto adicionado: $NOME\nQuantidade: $QUANTIDADE\nSubtotal: R$ $TOTAL_VENDA" 10 50
-
-        # Registrar no log
-        log_venda "Produto adicionado à venda: $NOME, Quantidade: $QUANTIDADE, Valor: R$ $ITEM_TOTAL"
-    done
+    # Adicionar o log da venda do item
+    registrar_log "$OPERADOR" "Venda" "Produto: $NOME_PRODUTO, Quantidade: $QUANTIDADE, Subtotal Item: R\$ $SUBTOTAL_ITEM"
+  done
 }
 
-# Função para cancelar compra
-cancelar_compra() {
-    log_venda "Compra cancelada pelo operador."
-    dialog --msgbox "Compra cancelada." 6 40
-    exit 0
+# Função para finalizar a compra
+finalizar_compra() {
+  clear
+  dialog --msgbox "Total da compra: R\$ $TOTAL_VENDA\nObrigado pela compra!" 10 40
+  registrar_log "$OPERADOR" "Finalizou venda" "Total: R\$ $TOTAL_VENDA"
+  
+  # Salvar cupom de venda em /etc/pdv/vendas
+  CUPOM_FILE="/etc/pdv/vendas/$(date '+%Y%m%d%H%M%S')_cupom.txt"
+  echo -e "================ PDV ================\nProduto\t\tQuantidade\t\tValor\n----------------------------------------\n$ITENS_VENDA\n----------------------------------------\nSubtotal: R\$ $TOTAL_VENDA\n========================================\nOperador: $OPERADOR Horário: $HORARIO\n========================================" > "$CUPOM_FILE"
+
+  # Mostrar mensagem final
+  dialog --msgbox "Cupom salvo em $CUPOM_FILE" 6 40
+  exit 0
 }
 
-# Função para finalizar venda
-finalizar_venda() {
-    # Perguntar a forma de pagamento
-    FORM_PAGAMENTO=$(dialog --stdout --menu "Forma de Pagamento" 10 50 3 \
-        1 "Dinheiro" \
-        2 "Cartão" \
-        3 "Pix")
+# Verificar se o diretório de vendas existe, se não, criar
+[ ! -d "/etc/pdv/vendas" ] && mkdir -p "/etc/pdv/vendas"
 
-    # Registrar no log
-    log_venda "Venda finalizada. Forma de pagamento: $FORM_PAGAMENTO. Total: R$ $TOTAL_VENDA"
-    log_venda "Itens da venda:\n$ITEMS"
-
-    # Gerar cupom
-    CUPOM_FILE="$CUPOM_DIR/cupom_$ID_VENDA.txt"
-    echo "================= CUPOM =================" > "$CUPOM_FILE"
-    echo -e "$ITEMS" >> "$CUPOM_FILE"
-    echo "------------------------------------------" >> "$CUPOM_FILE"
-    echo "Total: R$ $TOTAL_VENDA" >> "$CUPOM_FILE"
-    echo "Forma de pagamento: $FORM_PAGAMENTO" >> "$CUPOM_FILE"
-    echo "Operador: $OPERADOR" >> "$CUPOM_FILE"
-    echo "Horário: $(date '+%d-%m-%Y %H:%M:%S')" >> "$CUPOM_FILE"
-    echo "==========================================" >> "$CUPOM_FILE"
-
-    # Exibir mensagem de conclusão e gerar cupom
-    dialog --title "Cupom gerado" --msgbox "Venda finalizada com sucesso!\nCupom gerado em: $CUPOM_FILE" 10 50
-    exit 0
-}
-
-# Função para iniciar a venda
-iniciar_venda() {
-    # Perguntar o código do operador
-    OPERADOR=$(dialog --stdout --inputbox "Digite o código do operador:" 10 50)
-    log_venda "Operador $OPERADOR iniciou uma nova venda."
-
-    # Exibir a tela de PDV e rodar o loop de vendas
-    adicionar_produto
-}
-
-# Iniciar o PDV
-iniciar_venda
+# Executar o fluxo completo
+autenticar_operador
+capturar_input_produto
