@@ -7,7 +7,7 @@ source /etc/pdv/funcs/funcs_logs.sh
 TOTAL_VENDA=0
 ITENS_VENDA=""
 OPERADOR=""
-HORARIO=$(date '+%d-%m-%Y %H:%M:%S')
+HORARIO=$(date '+%d/%m %H:%M:%S')
 DB_HOST="redis_db"
 NOME_OPERADOR=""
 
@@ -19,14 +19,12 @@ desenhar_interface() {
     --inputbox "\
 Produto              Quantidade              Valor\n\
 --------------------------------------------------------------------------\n\
-$ITENS_VENDA\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\
+$ITENS_VENDA\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\
 --------------------------------------------------------------------------\n\
-\n\
-Subtotal: R\$ $TOTAL_VENDA\n\
-\n\
-==================================================\n\
-Operador: $NOME_OPERADOR              Horário: $HORARIO\n\
-==================================================\n\
+                                                      Subtotal: R\$ $TOTAL_VENDA\n\
+==========================================================================\n\
+Operador: $NOME_OPERADOR                                    Horário: $HORARIO\n\
+==========================================================================\n\
 Digite o código do produto ou pressione ESC para finalizar:" \
     35 80 2>&1 1>/dev/tty)
 
