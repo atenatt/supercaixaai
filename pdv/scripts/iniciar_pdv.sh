@@ -19,7 +19,7 @@ desenhar_interface() {
     --inputbox "\
 Produto              Quantidade              Valor\n\
 --------------------------------------------------------------------------\n\
-$ITENS_VENDA\n\n\n\n\n\n\n\n\n\
+$ITENS_VENDA\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\
 --------------------------------------------------------------------------\n\
 \n\
 Subtotal: R\$ $TOTAL_VENDA\n\
@@ -28,7 +28,7 @@ Subtotal: R\$ $TOTAL_VENDA\n\
 Operador: $NOME_OPERADOR              Horário: $HORARIO\n\
 ==================================================\n\
 Digite o código do produto ou pressione ESC para finalizar:" \
-    25 80 2>&1 1>/dev/tty)
+    35 80 2>&1 1>/dev/tty)
 
   # Limpar caracteres indesejados, como apóstrofos e espaços extras
   dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
