@@ -20,68 +20,67 @@ registrar_log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Operador: $1 | Ação: $2 | Detalhes: $3" >> "$LOG_FILE"
 }
 
-# Função para desenhar a interface conforme a imagem fornecida
+# Função para desenhar a interface de vendas com os itens
 desenhar_interface() {
-  while true; do
-    clear
-    local mensagem="$1"
+  clear
+  local mensagem="$1"
 
-    # Atualizar o horário atual
-    HORARIO=$(date '+%d/%m %H:%M:%S')
+  # Atualizar o horário atual
+  HORARIO=$(date '+%d/%m %H:%M:%S')
 
-    # Definir o número total de linhas reservadas para os itens
-    NUM_LINHAS_ITENS=20
+  # Definir o número total de linhas reservadas para os itens
+  NUM_LINHAS_ITENS=20
 
-    # Montar a lista de itens como uma string com quebras de linha
-    ITENS_VENDA_STR=""
-    local index=1
-    for item in "${ITENS_VENDA[@]}"; do
-      ITENS_VENDA_STR+="$(printf "%-6s %-25s\n" "$index" "$item")\n"  # Garantindo a quebra de linha após cada item
-      index=$((index + 1))
-    done
-
-    # Calcular o número de itens já adicionados
-    NUM_ITENS=${#ITENS_VENDA[@]}
-
-    # Calcular o número de linhas vazias restantes
-    NUM_LINHAS_VAZIAS=$((NUM_LINHAS_ITENS - NUM_ITENS))
-
-    # Criar as linhas vazias
-    LINHAS_VAZIAS=""
-    for ((i=0; i<NUM_LINHAS_VAZIAS; i++)); do
-      LINHAS_VAZIAS+="\n"
-    done
-
-    # Montar o conteúdo da interface
-    INPUTBOX_CONTENT="Número  Produto              Quantidade          Valor\n"
-    INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
-    INPUTBOX_CONTENT+="$ITENS_VENDA_STR$LINHAS_VAZIAS"
-    INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
-    INPUTBOX_CONTENT+="                                                          Subtotal: R\$ $TOTAL_VENDA\n"
-    INPUTBOX_CONTENT+="=========================================================================\n"
-    INPUTBOX_CONTENT+="Operador: $NOME_OPERADOR                                    Horário: $HORARIO\n"
-    INPUTBOX_CONTENT+="=========================================================================\n"
-    INPUTBOX_CONTENT+="$mensagem"
-
-    # Chamar o dialog com timeout para atualizar o horário em tempo real
-    dialog_output=$(dialog --clear --timeout 1 --backtitle "Vendas" \
-      --title "======================= PDV =======================" \
-      --inputbox "$INPUTBOX_CONTENT" \
-      35 80 2>&1 1>/dev/tty)
-
-    retorno=$?
-
-    # Se o timeout ocorrer (retorno 255), continuar o loop para atualizar o horário
-    if [ $retorno -eq 255 ]; then
-      continue
-    fi
-
-    # Limpar caracteres indesejados
-    dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
-
-    return $retorno
+  # Montar a lista de itens como uma string com quebras de linha
+  ITENS_VENDA_STR=""
+  local index=1
+  for item in "${ITENS_VENDA[@]}"; do
+    ITENS_VENDA_STR+="$(printf "%-6s %-20s\n" "$index" "$item")\n"  # Garantindo a quebra de linha após cada item
+    index=$((index + 1))
   done
+
+  # Calcular o número de itens já adicionados
+  NUM_ITENS=${#ITENS_VENDA[@]}
+
+  # Calcular o número de linhas vazias restantes
+  NUM_LINHAS_VAZIAS=$((NUM_LINHAS_ITENS - NUM_ITENS))
+
+  # Criar as linhas vazias
+  LINHAS_VAZIAS=""
+  for ((i=0; i<NUM_LINHAS_VAZIAS; i++)); do
+    LINHAS_VAZIAS+="\n"
+  done
+
+  # Montar o conteúdo da interface
+  INPUTBOX_CONTENT="Número  Produto              Quantidade          Valor\n"
+  INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+  INPUTBOX_CONTENT+="$ITENS_VENDA_STR$LINHAS_VAZIAS"
+  INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+  INPUTBOX_CONTENT+="                                                          Subtotal: R\$ $TOTAL_VENDA\n"
+  INPUTBOX_CONTENT+="=========================================================================\n"
+  INPUTBOX_CONTENT+="Operador: $NOME_OPERADOR                                    Horário: $HORARIO\n"
+  INPUTBOX_CONTENT+="=========================================================================\n"
+  INPUTBOX_CONTENT+="$mensagem"
+
+  # Exibir a interface
+  dialog_output=$(dialog --clear --backtitle "Vendas" \
+    --title "======================= PDV =======================" \
+    --inputbox "$INPUTBOX_CONTENT" \
+    35 80 2>&1 1>/dev/tty)
+
+  retorno=$?
+
+  # Se ESC for pressionado, voltar ao menu de opções
+  if [ $retorno -ne 0 ]; then
+    return $retorno
+  fi
+
+  # Limpar caracteres indesejados
+  dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
+
+  return $retorno
 }
+
 
 # Função para autenticar o operador
 autenticar_operador() {
@@ -122,7 +121,7 @@ autenticar_operador() {
   done
 }
 
-# Função para capturar o código do produto e quantidade dentro da interface principal
+# Função para capturar o código do produto e a quantidade dentro da interface principal
 capturar_input_produto() {
   MODO="produto"  # Inicializar o modo como "produto"
   while true; do
@@ -194,8 +193,8 @@ capturar_input_produto() {
       SUBTOTAL_ITEM=$(echo "scale=2; $PRECO_PRODUTO * $QUANTIDADE" | bc)
       TOTAL_VENDA=$(echo "scale=2; $TOTAL_VENDA + $SUBTOTAL_ITEM" | bc)
 
-      # Adicionar o item à lista de venda (array)
-      ITEM_FORMATADO=$(printf "%-20s %-20s R\$ %-10s" "$NOME_PRODUTO" "$QUANTIDADE" "$SUBTOTAL_ITEM")
+      # Adicionar o item à lista de venda (array) com formatação alinhada
+      ITEM_FORMATADO=$(printf "%-6s %-20s %-10s %-10s" "$((${#ITENS_VENDA[@]} + 1))" "$NOME_PRODUTO" "$QUANTIDADE" "R\$ $SUBTOTAL_ITEM")
       ITENS_VENDA+=("$ITEM_FORMATADO")
 
       # Atualizar o estoque no Redis
@@ -214,67 +213,65 @@ capturar_input_produto() {
   done
 }
 
-# Função para desenhar a interface conforme a imagem fornecida
+# Função para desenhar a interface de vendas com os itens
 desenhar_interface() {
-  while true; do
-    clear
-    local mensagem="$1"
+  clear
+  local mensagem="$1"
 
-    # Atualizar o horário atual
-    HORARIO=$(date '+%d/%m %H:%M:%S')
+  # Atualizar o horário atual
+  HORARIO=$(date '+%d/%m %H:%M:%S')
 
-    # Definir o número total de linhas reservadas para os itens
-    NUM_LINHAS_ITENS=20
+  # Definir o número total de linhas reservadas para os itens
+  NUM_LINHAS_ITENS=20
 
-    # Montar a lista de itens como uma string com quebras de linha
-    ITENS_VENDA_STR=""
-    local index=1
-    for item in "${ITENS_VENDA[@]}"; do
-      ITENS_VENDA_STR+="$(printf "%-6s %-25s\n" "$index" "$item")\n"  # Garantindo a quebra de linha após cada item
-      index=$((index + 1))
-    done
-
-    # Calcular o número de itens já adicionados
-    NUM_ITENS=${#ITENS_VENDA[@]}
-
-    # Calcular o número de linhas vazias restantes
-    NUM_LINHAS_VAZIAS=$((NUM_LINHAS_ITENS - NUM_ITENS))
-
-    # Criar as linhas vazias
-    LINHAS_VAZIAS=""
-    for ((i=0; i<NUM_LINHAS_VAZIAS; i++)); do
-      LINHAS_VAZIAS+="\n"
-    done
-
-    # Montar o conteúdo da interface
-    INPUTBOX_CONTENT="Número  Produto              Quantidade          Valor\n"
-    INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
-    INPUTBOX_CONTENT+="$ITENS_VENDA_STR$LINHAS_VAZIAS"
-    INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
-    INPUTBOX_CONTENT+="                                                          Subtotal: R\$ $TOTAL_VENDA\n"
-    INPUTBOX_CONTENT+="=========================================================================\n"
-    INPUTBOX_CONTENT+="Operador: $NOME_OPERADOR                                    Horário: $HORARIO\n"
-    INPUTBOX_CONTENT+="=========================================================================\n"
-    INPUTBOX_CONTENT+="$mensagem"
-
-    # Remover --no-cancel para permitir o botão ESC
-    dialog_output=$(dialog --clear --backtitle "Vendas" \
-      --title "======================= PDV =======================" \
-      --inputbox "$INPUTBOX_CONTENT" \
-      35 80 2>&1 1>/dev/tty)
-
-    retorno=$?
-
-    # Se ESC for pressionado, voltar ao menu de opções
-    if [ $retorno -ne 0 ]; then
-      return $retorno
-    fi
-
-    # Limpar caracteres indesejados
-    dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
-
-    return $retorno
+  # Montar a lista de itens como uma string com quebras de linha
+  ITENS_VENDA_STR=""
+  local index=1
+  for item in "${ITENS_VENDA[@]}"; do
+    ITENS_VENDA_STR+="$(printf "%-6s %s\n" "$index" "$item")"  # Garantindo a quebra de linha após cada item
+    index=$((index + 1))
   done
+
+  # Calcular o número de itens já adicionados
+  NUM_ITENS=${#ITENS_VENDA[@]}
+
+  # Calcular o número de linhas vazias restantes
+  NUM_LINHAS_VAZIAS=$((NUM_LINHAS_ITENS - NUM_ITENS))
+
+  # Criar as linhas vazias
+  LINHAS_VAZIAS=""
+  for ((i=0; i<NUM_LINHAS_VAZIAS; i++)); do
+    LINHAS_VAZIAS+="\n"
+  done
+
+  # Montar o conteúdo da interface
+  INPUTBOX_CONTENT="Número  Produto              Quantidade    Valor\n"
+  INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+  INPUTBOX_CONTENT+="$ITENS_VENDA_STR$LINHAS_VAZIAS"
+  INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+  INPUTBOX_CONTENT+="                                                      Subtotal: R\$ $TOTAL_VENDA\n"
+  INPUTBOX_CONTENT+="=========================================================================\n"
+  INPUTBOX_CONTENT+="Operador: $NOME_OPERADOR                                    Horário: $HORARIO\n"
+  INPUTBOX_CONTENT+="=========================================================================\n"
+  INPUTBOX_CONTENT+="$mensagem"
+
+  # Exibir a interface
+  dialog_output=$(dialog --clear --backtitle "Vendas" \
+    --title "======================= PDV =======================" \
+    --inputbox "$INPUTBOX_CONTENT" \
+    35 80 2>&1 1>/dev/tty)
+
+  retorno=$?
+
+  # Se ESC for pressionado, voltar ao menu de opções
+  if [ $retorno -ne 0 ]; then
+    return $retorno
+  fi
+
+  # Limpar caracteres indesejados
+  dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
+
+  return $retorno
 }
 
 # Função para exibir o menu ao pressionar ESC
@@ -451,8 +448,13 @@ cancelar_compra() {
   # Montar os itens para o cupom
   ITENS_CUPOM=""
   for item in "${ITENS_VENDA[@]}"; do
-    # Simplesmente adicionar os itens já com os índices gerados pela venda
-    ITENS_CUPOM+="$item\n"
+    # Ajustar o formato para manter o layout correto com o alinhamento da quantidade e valor
+    PRODUTO=$(echo "$item" | awk '{print $1}')
+    QUANTIDADE=$(echo "$item" | awk '{print $2}')
+    VALOR=$(echo "$item" | awk '{print $4}')
+    
+    # Usar printf para garantir o alinhamento das colunas
+    ITENS_CUPOM+="$(printf "%-4s %-15s %-10s %-10s\n" "$PRODUTO" "$PRODUTO" "$QUANTIDADE" "R\$ $VALOR")\n"
   done
 
   # Se não houver itens, não deve gerar o cupom
