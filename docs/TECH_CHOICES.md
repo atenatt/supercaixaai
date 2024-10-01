@@ -19,13 +19,7 @@ Este documento explica as justificativas por trás das tecnologias selecionadas 
 
 ## Infraestrutura
 
-### 3. **Vagrant**
-   - **Justificativa**:
-     - **Ambiente de Desenvolvimento Local**: Vagrant facilita a criação e gerenciamento de ambientes virtuais consistentes, garantindo que o ambiente local dos desenvolvedores seja semelhante ao ambiente de produção.
-     - **Facilidade de Provisionamento**: Usar Vagrant com scripts de provisionamento (como Ansible e Shell Script) simplifica a configuração das máquinas virtuais e garante que todos os serviços necessários estejam prontos.
-     - **Escalabilidade para Docker**: O uso inicial de Vagrant nos permite focar no desenvolvimento, com a flexibilidade de migrar para Docker quando a aplicação estiver pronta para o próximo nível de containerização.
-
-### 4. **Docker (futuro)**
+### 4. **Docker**
    - **Justificativa**:
      - **Leveza e Rapidez**: Docker é muito mais leve e rápido do que máquinas virtuais, o que será benéfico quando o sistema precisar escalar ou ser distribuído em diferentes servidores.
      - **Escalabilidade**: A transição para Docker, junto com orquestradores como Kubernetes, permitirá que o **SuperCaixa AI** escale facilmente à medida que o sistema cresce em complexidade e número de usuários.
@@ -39,25 +33,19 @@ Este documento explica as justificativas por trás das tecnologias selecionadas 
 
 ## Banco de Dados
 
-### 6. **MariaDB**
-   - **Justificativa**:
-     - **Confiabilidade e Maturidade**: O MariaDB é uma solução de banco de dados relacional open-source amplamente utilizada, conhecida por sua robustez e confiabilidade.
-     - **Desempenho em Transações**: Para o **SuperCaixa AI**, que lidará com muitas transações em tempo real (vendas, relatórios, etc.), MariaDB oferece o desempenho necessário para gerenciar essas operações de maneira eficiente.
-     - **Suporte a SQL**: O suporte completo a SQL facilita a interação com o banco e a implementação de consultas complexas, necessárias para relatórios e análises de vendas.
-
-### 7. **NoSQL (Futuro)**
+### 6. **RedisDB**
    - **Justificativa**:
      - **Escalabilidade**: Bancos de dados NoSQL são ótimos para grandes volumes de dados e podem ser uma boa escolha no futuro caso o sistema precise armazenar dados mais flexíveis ou em grandes quantidades (ex.: logs, dados de clientes).
      - **Flexibilidade de Modelo de Dados**: NoSQL permite um modelo de dados mais flexível, o que pode ser útil em áreas onde a estrutura dos dados varia ou evolui rapidamente.
 
 ## Outras Ferramentas e Práticas
 
-### 8. **Terraform**
+### 7. **Terraform**
    - **Justificativa**:
      - **Automação da Infraestrutura em Nuvem**: Terraform permitirá a automação completa da infraestrutura em nuvem, facilitando a criação, gerenciamento e escalabilidade dos recursos em AWS ou outros provedores de nuvem.
      - **Infraestrutura como Código**: Assim como o Ansible, o Terraform permite gerenciar a infraestrutura como código, garantindo reprodutibilidade e fácil versionamento.
 
-### 9. **CI/CD (Jenkins, GitHub Actions)**
+### 8. **CI/CD (Jenkins, GitHub Actions)**
    - **Justificativa**:
      - **Integração e Entrega Contínua**: O uso de pipelines de CI/CD garante que o código seja constantemente testado e integrado, minimizando erros e permitindo deploys contínuos com confiança.
      - **Automação do Ciclo de Desenvolvimento**: Jenkins ou GitHub Actions automatizarão a execução de testes, builds e deploys, garantindo um fluxo de desenvolvimento ágil.
