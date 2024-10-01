@@ -26,6 +26,7 @@ services:
     volumes:
       - redis_data:/data
       - ./logs:/var/log
+      - ./cupons:/etc/pdv/cupons
 
   pdv2:
     build:
@@ -40,6 +41,7 @@ services:
     volumes:
       - redis_data:/data
       - ./logs:/var/log
+      - ./cupons:/etc/pdv/cupons
 
   redis_db:
     build:
