@@ -7,7 +7,6 @@ source /etc/pdv/funcs/funcs_logs.sh
 TOTAL_VENDA=0
 ITENS_VENDA=()
 OPERADOR=""
-HORARIO=$(date '+%d/%m %H:%M:%S')
 DB_HOST="redis_db"
 NOME_OPERADOR=""
 LOG_FILE="/tmp/pdv_log.txt"
@@ -16,11 +15,6 @@ CODIGO_PRODUTO=""
 NOME_PRODUTO=""
 PRECO_PRODUTO=0
 
-# Variáveis para o pagamento
-VALOR_RESTANTE=0
-METODOS_PAGAMENTO=()
-PAGAMENTOS=()
-
 # Função para registrar logs
 registrar_log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Operador: $1 | Ação: $2 | Detalhes: $3" >> "$LOG_FILE"
@@ -28,54 +22,65 @@ registrar_log() {
 
 # Função para desenhar a interface conforme a imagem fornecida
 desenhar_interface() {
-  clear
-  local mensagem="$1"
+  while true; do
+    clear
+    local mensagem="$1"
 
-  # Definir o número total de linhas reservadas para os itens
-  NUM_LINHAS_ITENS=20
+    # Atualizar o horário atual
+    HORARIO=$(date '+%d/%m %H:%M:%S')
 
-  # Montar a lista de itens como uma string com quebras de linha
-  ITENS_VENDA_STR=""
-  for item in "${ITENS_VENDA[@]}"; do
-    ITENS_VENDA_STR+="$item\n"
+    # Definir o número total de linhas reservadas para os itens
+    NUM_LINHAS_ITENS=20
+
+    # Montar a lista de itens como uma string com quebras de linha
+    ITENS_VENDA_STR=""
+    local index=1
+    for item in "${ITENS_VENDA[@]}"; do
+      ITENS_VENDA_STR+="$(printf "%-6s %-25s\n" "$index" "$item")\n"  # Garantindo a quebra de linha após cada item
+      index=$((index + 1))
+    done
+
+    # Calcular o número de itens já adicionados
+    NUM_ITENS=${#ITENS_VENDA[@]}
+
+    # Calcular o número de linhas vazias restantes
+    NUM_LINHAS_VAZIAS=$((NUM_LINHAS_ITENS - NUM_ITENS))
+
+    # Criar as linhas vazias
+    LINHAS_VAZIAS=""
+    for ((i=0; i<NUM_LINHAS_VAZIAS; i++)); do
+      LINHAS_VAZIAS+="\n"
+    done
+
+    # Montar o conteúdo da interface
+    INPUTBOX_CONTENT="Número  Produto              Quantidade          Valor\n"
+    INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+    INPUTBOX_CONTENT+="$ITENS_VENDA_STR$LINHAS_VAZIAS"
+    INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+    INPUTBOX_CONTENT+="                                                          Subtotal: R\$ $TOTAL_VENDA\n"
+    INPUTBOX_CONTENT+="=========================================================================\n"
+    INPUTBOX_CONTENT+="Operador: $NOME_OPERADOR                                    Horário: $HORARIO\n"
+    INPUTBOX_CONTENT+="=========================================================================\n"
+    INPUTBOX_CONTENT+="$mensagem"
+
+    # Chamar o dialog com timeout para atualizar o horário em tempo real
+    dialog_output=$(dialog --clear --timeout 1 --backtitle "Vendas" \
+      --title "======================= PDV =======================" \
+      --inputbox "$INPUTBOX_CONTENT" \
+      35 80 2>&1 1>/dev/tty)
+
+    retorno=$?
+
+    # Se o timeout ocorrer (retorno 255), continuar o loop para atualizar o horário
+    if [ $retorno -eq 255 ]; then
+      continue
+    fi
+
+    # Limpar caracteres indesejados
+    dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
+
+    return $retorno
   done
-
-  # Calcular o número de itens já adicionados
-  NUM_ITENS=${#ITENS_VENDA[@]}
-
-  # Calcular o número de linhas vazias restantes
-  NUM_LINHAS_VAZIAS=$((NUM_LINHAS_ITENS - NUM_ITENS))
-
-  # Criar as linhas vazias
-  LINHAS_VAZIAS=""
-  for ((i=0; i<NUM_LINHAS_VAZIAS; i++)); do
-    LINHAS_VAZIAS+="\n"
-  done
-
-  # Montar o conteúdo da interface
-  INPUTBOX_CONTENT="Produto              Quantidade              Valor\n"
-  INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
-  INPUTBOX_CONTENT+="$ITENS_VENDA_STR$LINHAS_VAZIAS"
-  INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
-  INPUTBOX_CONTENT+="                                                          Subtotal: R\$ $TOTAL_VENDA\n"
-  INPUTBOX_CONTENT+="=========================================================================\n"
-  INPUTBOX_CONTENT+="Operador: $NOME_OPERADOR                                    Horário: $HORARIO\n"
-  INPUTBOX_CONTENT+="=========================================================================\n"
-  INPUTBOX_CONTENT+="$mensagem"
-
-  # Chamar o dialog com o conteúdo montado
-  dialog_output=$(dialog --clear --backtitle "Vendas" \
-    --title "======================= PDV =======================" \
-    --inputbox "$INPUTBOX_CONTENT" \
-    35 80 2>&1 1>/dev/tty)
-
-  # Capturar o código de retorno para verificar se o usuário pressionou ESC
-  retorno=$?
-
-  # Limpar caracteres indesejados
-  dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
-
-  return $retorno
 }
 
 # Função para autenticar o operador
@@ -126,18 +131,18 @@ capturar_input_produto() {
       mensagem="Digite o código do produto ou pressione ESC para opções:"
       desenhar_interface "$mensagem"
       retorno=$?
-      INPUT="$dialog_output"
 
-      # Se o operador pressionar ESC, mostrar o menu de opções
+      # Verificar o retorno do dialog (ESC retorna 1 ou 255)
       if [ $retorno -ne 0 ]; then
+        # Se ESC for pressionado, abrir o menu de opções
         menu_apos_esc
         continue  # Volta ao loop principal após o menu
       fi
 
       # Verificar se o código do produto é válido
-      CODIGO_PRODUTO=$(echo "$INPUT" | sed 's/[^0-9]//g')
+      CODIGO_PRODUTO=$(echo "$dialog_output" | sed 's/[^0-9]//g')
       if [ -z "$CODIGO_PRODUTO" ]; then
-        registrar_log "$NOME_OPERADOR" "Erro" "Código de produto inválido: $INPUT"
+        registrar_log "$NOME_OPERADOR" "Erro" "Código de produto inválido: $dialog_output"
         continue
       fi
 
@@ -163,18 +168,18 @@ capturar_input_produto() {
       mensagem="Digite a quantidade para o produto $NOME_PRODUTO:"
       desenhar_interface "$mensagem"
       retorno=$?
-      INPUT="$dialog_output"
 
-      # Se o operador pressionar ESC, mostrar o menu de opções
+      # Verificar o retorno do dialog (ESC retorna 1 ou 255)
       if [ $retorno -ne 0 ]; then
+        # Se ESC for pressionado, abrir o menu de opções
         menu_apos_esc
         continue  # Volta ao loop principal após o menu
       fi
 
       # Verificar se a quantidade é válida
-      QUANTIDADE=$(echo "$INPUT" | sed 's/[^0-9]//g')
+      QUANTIDADE=$(echo "$dialog_output" | sed 's/[^0-9]//g')
       if [ -z "$QUANTIDADE" ] || [ "$QUANTIDADE" -le 0 ]; then
-        registrar_log "$NOME_OPERADOR" "Erro" "Quantidade inválida: $INPUT para o produto $NOME_PRODUTO"
+        registrar_log "$NOME_OPERADOR" "Erro" "Quantidade inválida: $dialog_output para o produto $NOME_PRODUTO"
         MODO="produto"
         continue
       fi
@@ -186,8 +191,8 @@ capturar_input_produto() {
       fi
 
       # Calcular subtotal do item
-      SUBTOTAL_ITEM=$(echo "$PRECO_PRODUTO * $QUANTIDADE" | bc)
-      TOTAL_VENDA=$(echo "$TOTAL_VENDA + $SUBTOTAL_ITEM" | bc)
+      SUBTOTAL_ITEM=$(echo "scale=2; $PRECO_PRODUTO * $QUANTIDADE" | bc)
+      TOTAL_VENDA=$(echo "scale=2; $TOTAL_VENDA + $SUBTOTAL_ITEM" | bc)
 
       # Adicionar o item à lista de venda (array)
       ITEM_FORMATADO=$(printf "%-20s %-20s R\$ %-10s" "$NOME_PRODUTO" "$QUANTIDADE" "$SUBTOTAL_ITEM")
@@ -209,14 +214,78 @@ capturar_input_produto() {
   done
 }
 
+# Função para desenhar a interface conforme a imagem fornecida
+desenhar_interface() {
+  while true; do
+    clear
+    local mensagem="$1"
+
+    # Atualizar o horário atual
+    HORARIO=$(date '+%d/%m %H:%M:%S')
+
+    # Definir o número total de linhas reservadas para os itens
+    NUM_LINHAS_ITENS=20
+
+    # Montar a lista de itens como uma string com quebras de linha
+    ITENS_VENDA_STR=""
+    local index=1
+    for item in "${ITENS_VENDA[@]}"; do
+      ITENS_VENDA_STR+="$(printf "%-6s %-25s\n" "$index" "$item")\n"  # Garantindo a quebra de linha após cada item
+      index=$((index + 1))
+    done
+
+    # Calcular o número de itens já adicionados
+    NUM_ITENS=${#ITENS_VENDA[@]}
+
+    # Calcular o número de linhas vazias restantes
+    NUM_LINHAS_VAZIAS=$((NUM_LINHAS_ITENS - NUM_ITENS))
+
+    # Criar as linhas vazias
+    LINHAS_VAZIAS=""
+    for ((i=0; i<NUM_LINHAS_VAZIAS; i++)); do
+      LINHAS_VAZIAS+="\n"
+    done
+
+    # Montar o conteúdo da interface
+    INPUTBOX_CONTENT="Número  Produto              Quantidade          Valor\n"
+    INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+    INPUTBOX_CONTENT+="$ITENS_VENDA_STR$LINHAS_VAZIAS"
+    INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+    INPUTBOX_CONTENT+="                                                          Subtotal: R\$ $TOTAL_VENDA\n"
+    INPUTBOX_CONTENT+="=========================================================================\n"
+    INPUTBOX_CONTENT+="Operador: $NOME_OPERADOR                                    Horário: $HORARIO\n"
+    INPUTBOX_CONTENT+="=========================================================================\n"
+    INPUTBOX_CONTENT+="$mensagem"
+
+    # Remover --no-cancel para permitir o botão ESC
+    dialog_output=$(dialog --clear --backtitle "Vendas" \
+      --title "======================= PDV =======================" \
+      --inputbox "$INPUTBOX_CONTENT" \
+      35 80 2>&1 1>/dev/tty)
+
+    retorno=$?
+
+    # Se ESC for pressionado, voltar ao menu de opções
+    if [ $retorno -ne 0 ]; then
+      return $retorno
+    fi
+
+    # Limpar caracteres indesejados
+    dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
+
+    return $retorno
+  done
+}
+
 # Função para exibir o menu ao pressionar ESC
 menu_apos_esc() {
   opcao=$(dialog --clear --backtitle "Opções" --title "Selecione uma opção" \
-    --menu "Escolha uma das opções abaixo:" 15 50 3 \
+    --menu "Escolha uma das opções abaixo:" 15 50 5 \
     1 "Continuar Compra" \
     2 "Cancelar Compra" \
     3 "Finalizar Compra" \
-    4 "Sair do PDV" \
+    4 "Excluir Item" \
+    5 "Recuperar Cupom" \
     2>&1 1>/dev/tty)
 
   case $opcao in
@@ -235,9 +304,14 @@ menu_apos_esc() {
       processar_pagamento
       ;;
     4)
-      # Sair do PDV
-      registrar_log "$NOME_OPERADOR" "Opção" "Operador escolheu sair do PDV."
-      exit
+      # Excluir item
+      registrar_log "$NOME_OPERADOR" "Opção" "Operador escolheu excluir um item."
+      excluir_item
+      ;;
+    5)
+      # Recuperar cupom
+      registrar_log "$NOME_OPERADOR" "Opção" "Operador escolheu recuperar cupom."
+      recuperar_cupom
       ;;
     *)
       # Qualquer outra opção, continuar compra
@@ -246,26 +320,153 @@ menu_apos_esc() {
   esac
 }
 
+# Função para recalcular o subtotal após exclusão de itens
+recalcular_subtotal() {
+  TOTAL_VENDA=0  # Reiniciar o subtotal
+  for item in "${ITENS_VENDA[@]}"; do
+    VALOR=$(echo "$item" | awk '{print $4}' | sed 's/[^0-9.]//g')
+    TOTAL_VENDA=$(echo "scale=2; $TOTAL_VENDA + $VALOR" | bc)
+  done
+}
+
+# Função para excluir um item
+excluir_item() {
+  if [ ${#ITENS_VENDA[@]} -eq 0 ]; then
+    dialog --msgbox "Não há itens para excluir." 6 40
+    return
+  fi
+
+  mensagem="Qual número do item você deseja excluir?"
+  desenhar_interface "$mensagem"
+  retorno=$?
+  INPUT="$dialog_output"
+
+  # Se o operador pressionar ESC, retorna ao menu
+  if [ $retorno -ne 0 ]; then
+    return
+  fi
+
+  ITEM_EXCLUIR=$(echo "$INPUT" | sed 's/[^0-9]//g')
+
+  if [ -z "$ITEM_EXCLUIR" ] || [ "$ITEM_EXCLUIR" -le 0 ] || [ "$ITEM_EXCLUIR" -gt ${#ITENS_VENDA[@]} ]; then
+    dialog --msgbox "Número do item inválido." 6 40
+    return
+  fi
+
+  # Remover o item do array
+  INDEX=$((ITEM_EXCLUIR - 1))
+
+  # Obter detalhes do item para ajustar o estoque
+  ITEM="${ITENS_VENDA[$INDEX]}"
+  PRODUTO=$(echo "$ITEM" | awk '{print $1}')
+  QUANTIDADE=$(echo "$ITEM" | awk '{print $2}')
+
+  # Atualizar o estoque no Redis (repor o estoque)
+  CODIGO_PRODUTO=$(redis-cli -h $DB_HOST --scan --pattern "mercadoria:*" | while read key; do
+    nome=$(redis-cli -h $DB_HOST HGET "$key" nome)
+    if [ "$nome" == "$PRODUTO" ]; then
+      echo "${key##mercadoria:}"
+      break
+    fi
+  done)
+  redis-cli -h $DB_HOST HINCRBY "mercadoria:$CODIGO_PRODUTO" estoque "$QUANTIDADE"
+
+  # Remover o item do array
+  unset ITENS_VENDA[$INDEX]
+  # Reindexar o array
+  ITENS_VENDA=("${ITENS_VENDA[@]}")
+
+  # Recalcular o subtotal após a exclusão
+  recalcular_subtotal
+
+  registrar_log "$NOME_OPERADOR" "Excluir Item" "Item $ITEM_EXCLUIR excluído."
+}
+
+# Função para desenhar a interface conforme a imagem fornecida
+desenhar_interface() {
+  clear
+  local mensagem="$1"
+
+  # Atualizar o horário atual
+  HORARIO=$(date '+%d/%m %H:%M:%S')
+
+  # Definir o número total de linhas reservadas para os itens
+  NUM_LINHAS_ITENS=20
+
+  # Montar a lista de itens como uma string com quebras de linha
+  ITENS_VENDA_STR=""
+  local index=1
+  for item in "${ITENS_VENDA[@]}"; do
+    ITENS_VENDA_STR+="$(printf "%-6s %-25s\n" "$index" "$item")\n"
+    index=$((index + 1))
+  done
+
+  # Calcular o número de itens já adicionados
+  NUM_ITENS=${#ITENS_VENDA[@]}
+
+  # Calcular o número de linhas vazias restantes
+  NUM_LINHAS_VAZIAS=$((NUM_LINHAS_ITENS - NUM_ITENS))
+
+  # Criar as linhas vazias
+  LINHAS_VAZIAS=""
+  for ((i=0; i<NUM_LINHAS_VAZIAS; i++)); do
+    LINHAS_VAZIAS+="\n"
+  done
+
+  # Montar o conteúdo da interface
+  INPUTBOX_CONTENT="Número  Produto              Quantidade          Valor\n"
+  INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+  INPUTBOX_CONTENT+="$ITENS_VENDA_STR$LINHAS_VAZIAS"
+  INPUTBOX_CONTENT+="--------------------------------------------------------------------------\n"
+  INPUTBOX_CONTENT+="                                                          Subtotal: R\$ $TOTAL_VENDA\n"
+  INPUTBOX_CONTENT+="=========================================================================\n"
+  INPUTBOX_CONTENT+="Operador: $NOME_OPERADOR                                    Horário: $HORARIO\n"
+  INPUTBOX_CONTENT+="=========================================================================\n"
+  INPUTBOX_CONTENT+="$mensagem"
+
+  # Exibir a interface
+  dialog_output=$(dialog --clear --backtitle "Vendas" \
+    --title "======================= PDV =======================" \
+    --inputbox "$INPUTBOX_CONTENT" \
+    35 80 2>&1 1>/dev/tty)
+
+  retorno=$?
+
+  # Se ESC for pressionado, voltar ao menu de opções
+  if [ $retorno -ne 0 ]; then
+    return $retorno
+  fi
+
+  # Limpar caracteres indesejados
+  dialog_output=$(echo "$dialog_output" | sed "s/[^a-zA-Z0-9]//g")
+
+  return $retorno
+}
+
 # Função para cancelar a compra
 cancelar_compra() {
+  # Gerar número de cupom
+  NUM_CUPOM=$(date '+%Y%m%d%H%M%S')_"$OPERADOR"
+
   # Salvar cupom de cancelamento em /etc/pdv e /etc/pdv/cupons
-  CUPOM_FILE="/etc/pdv/$(date '+%Y%m%d%H%M%S')_compra_cancelada.txt"
-  CUPOM_CUPONS="/etc/pdv/cupons/$(date '+%Y%m%d%H%M%S')_compra_cancelada.txt"
+  CUPOM_FILE="/etc/pdv/$NUM_CUPOM_compra_cancelada.txt"
+  CUPOM_CUPONS="/etc/pdv/cupons/$NUM_CUPOM_compra_cancelada.txt"
 
   # Montar os itens para o cupom
   ITENS_CUPOM=""
+  local index=1
   for item in "${ITENS_VENDA[@]}"; do
-    ITENS_CUPOM+="$item\n"
+    ITENS_CUPOM+="$(printf "%-6s %-20s\n" "$index" "$item")"
+    index=$((index + 1))
   done
 
-  echo -e "======================= PDV =======================\nCOMPRA CANCELADA\nProduto              Quantidade              Valor\n--------------------------------------------------------------------------\n$ITENS_CUPOM--------------------------------------------------------------------------\nSubtotal: R\$ $TOTAL_VENDA\n==================================================\nOperador: $NOME_OPERADOR                               Horário: $HORARIO\n==================================================" > "$CUPOM_FILE"
+  echo -e "======================= PDV =======================\nCUPOM: $NUM_CUPOM\nCOMPRA CANCELADA\nNúmero  Produto              Quantidade          Valor\n--------------------------------------------------------------------------\n$ITENS_CUPOM--------------------------------------------------------------------------\nSubtotal: R\$ $TOTAL_VENDA\n==================================================\nOperador: $NOME_OPERADOR                               Horário: $HORARIO\n==================================================" > "$CUPOM_FILE"
 
-  # Mover o cupom para o diretório /etc/pdv/cupons
-  mv "$CUPOM_FILE" "$CUPOM_CUPONS"
+  # Copiar o cupom para o diretório /etc/pdv/cupons
+  cp "$CUPOM_FILE" "$CUPOM_CUPONS"
 
   # Registrar no Redis
-  ID_COMPRA=$(date '+%Y%m%d%H%M%S')_"$OPERADOR"
-  redis-cli -h $DB_HOST HMSET "compra:$ID_COMPRA" status "cancelada" operador "$OPERADOR" total "$TOTAL_VENDA" itens "$ITENS_CUPOM"
+  redis-cli -h $DB_HOST HMSET "compra:$NUM_CUPOM" status "cancelada" operador "$OPERADOR" total "$TOTAL_VENDA" itens "$ITENS_CUPOM"
 
   registrar_log "$NOME_OPERADOR" "Compra Cancelada" "Compra cancelada e cupom salvo em $CUPOM_FILE e $CUPOM_CUPONS"
 
@@ -330,7 +531,7 @@ processar_pagamento() {
       fi
 
       PAGAMENTOS+=("$NOME_METODO:R\$ $valor_pago")
-      VALOR_RESTANTE=$(echo "$VALOR_RESTANTE - $valor_pago" | bc)
+      VALOR_RESTANTE=$(echo "scale=2; $VALOR_RESTANTE - $valor_pago" | bc)
     else
       # Opção inválida, retornar
       continue
@@ -344,26 +545,34 @@ processar_pagamento() {
 # Função para finalizar a compra
 finalizar_compra() {
   clear
+  # Gerar número de cupom
+  NUM_CUPOM=$(date '+%Y%m%d%H%M%S')_"$OPERADOR"
+
   # Montar os métodos de pagamento utilizados
   METODOS_PAGAMENTO=$(printf "%s\n" "${PAGAMENTOS[@]}")
 
   dialog --msgbox "Total da compra: R\$ $TOTAL_VENDA\nPagamento:\n$METODOS_PAGAMENTO\nObrigado pela compra!" 15 50
   registrar_log "$NOME_OPERADOR" "Finalizou Venda" "Total: R\$ $TOTAL_VENDA | Pagamento: $METODOS_PAGAMENTO"
 
-  # Salvar cupom de venda em /etc/pdv/cupons
-  CUPOM_FILE="/etc/pdv/cupons/$(date '+%Y%m%d%H%M%S')_cupom.txt"
+  # Salvar cupom de venda em /etc/pdv/vendas e /etc/pdv/cupons
+  CUPOM_FILE="/etc/pdv/vendas/$NUM_CUPOM_cupom.txt"
+  CUPOM_CUPONS="/etc/pdv/cupons/$NUM_CUPOM_cupom.txt"
 
   # Montar os itens para o cupom
   ITENS_CUPOM=""
+  local index=1
   for item in "${ITENS_VENDA[@]}"; do
-    ITENS_CUPOM+="$item\n"
+    ITENS_CUPOM+="$(printf "%-6s %-20s\n" "$index" "$item")"
+    index=$((index + 1))
   done
 
-  echo -e "======================= PDV =======================\nProduto              Quantidade              Valor\n--------------------------------------------------------------------------\n$ITENS_CUPOM--------------------------------------------------------------------------\nSubtotal: R\$ $TOTAL_VENDA\nMétodo(s) de Pagamento:\n$METODOS_PAGAMENTO\n==================================================\nOperador: $NOME_OPERADOR                               Horário: $HORARIO\n==================================================" > "$CUPOM_FILE"
+  echo -e "======================= PDV =======================\nCUPOM: $NUM_CUPOM\nNúmero  Produto              Quantidade          Valor\n--------------------------------------------------------------------------\n$ITENS_CUPOM--------------------------------------------------------------------------\nSubtotal: R\$ $TOTAL_VENDA\nMétodo(s) de Pagamento:\n$METODOS_PAGAMENTO\n==================================================\nOperador: $NOME_OPERADOR                               Horário: $HORARIO\n==================================================" > "$CUPOM_FILE"
+
+  # Copiar o cupom para o diretório /etc/pdv/cupons
+  cp "$CUPOM_FILE" "$CUPOM_CUPONS"
 
   # Salvar cupom no Redis
-  ID_COMPRA=$(date '+%Y%m%d%H%M%S')_"$OPERADOR"
-  redis-cli -h $DB_HOST HMSET "compra:$ID_COMPRA" status "finalizada" operador "$OPERADOR" total "$TOTAL_VENDA" itens "$ITENS_CUPOM" pagamentos "$METODOS_PAGAMENTO"
+  redis-cli -h $DB_HOST HMSET "compra:$NUM_CUPOM" status "finalizada" operador "$OPERADOR" total "$TOTAL_VENDA" itens "$ITENS_CUPOM" pagamentos "$METODOS_PAGAMENTO"
 
   # Mostrar mensagem final
   dialog --msgbox "Cupom salvo em $CUPOM_FILE" 6 40
@@ -376,7 +585,97 @@ finalizar_compra() {
   PAGAMENTOS=()
 }
 
-# Verificar se o diretório de cupons existe, se não, criar
+# Função para recuperar cupom cancelado
+recuperar_cupom() {
+  # Solicitar o critério de busca
+  criterio=$(dialog --clear --backtitle "Recuperar Cupom" --title "Critério de Busca" \
+    --menu "Escolha o critério para buscar o cupom cancelado:" 15 50 3 \
+    1 "Número do Cupom" \
+    2 "Nome do Operador" \
+    3 "Valor da Compra" \
+    2>&1 1>/dev/tty)
+
+  case $criterio in
+    1)
+      # Buscar por número do cupom
+      NUM_CUPOM=$(dialog --stdout --inputbox "Digite o número do cupom:" 8 40)
+      NUM_CUPOM=$(echo "$NUM_CUPOM" | sed 's/[^0-9_]//g')
+      ;;
+    2)
+      # Buscar por nome do operador
+      NOME_OP=$(dialog --stdout --inputbox "Digite o nome do operador:" 8 40)
+      NOME_OP=$(echo "$NOME_OP" | sed 's/[^a-zA-Z ]//g')
+      ;;
+    3)
+      # Buscar por valor da compra
+      VALOR_COMPRA=$(dialog --stdout --inputbox "Digite o valor da compra:" 8 40)
+      VALOR_COMPRA=$(echo "$VALOR_COMPRA" | sed 's/[^0-9.]//g')
+      ;;
+    *)
+      # Cancelou
+      return
+      ;;
+  esac
+
+  # Procurar cupons cancelados no Redis
+  CUPONS_ENCONTRADOS=()
+  for key in $(redis-cli -h $DB_HOST KEYS "compra:*"); do
+    STATUS=$(redis-cli -h $DB_HOST HGET "$key" status)
+    if [ "$STATUS" == "cancelada" ]; then
+      MATCH=0
+      if [ "$criterio" -eq 1 ]; then
+        if [ "${key##compra:}" == "$NUM_CUPOM" ]; then
+          MATCH=1
+        fi
+      elif [ "$criterio" -eq 2 ]; then
+        OPERADOR_NOME=$(redis-cli -h $DB_HOST HGET "$key" operador)
+        if [ "$OPERADOR_NOME" == "$OPERADOR" ]; then
+          MATCH=1
+        fi
+      elif [ "$criterio" -eq 3 ]; then
+        TOTAL=$(redis-cli -h $DB_HOST HGET "$key" total)
+        if (( $(echo "$TOTAL == $VALOR_COMPRA" | bc -l) )); then
+          MATCH=1
+        fi
+      fi
+      if [ "$MATCH" -eq 1 ]; then
+        CUPONS_ENCONTRADOS+=("$key")
+      fi
+    fi
+  done
+
+  if [ ${#CUPONS_ENCONTRADOS[@]} -eq 0 ]; then
+    dialog --msgbox "Nenhum cupom encontrado." 6 40
+    return
+  elif [ ${#CUPONS_ENCONTRADOS[@]} -gt 1 ]; then
+    dialog --msgbox "Mais de um cupom encontrado, favor especificar." 6 60
+    return
+  else
+    # Recuperar o cupom
+    CUPOM_KEY="${CUPONS_ENCONTRADOS[0]}"
+    ITENS=$(redis-cli -h $DB_HOST HGET "$CUPOM_KEY" itens)
+    TOTAL=$(redis-cli -h $DB_HOST HGET "$CUPOM_KEY" total)
+
+    # Carregar os itens na venda atual
+    IFS=$'\n' read -rd '' -a ITENS_VENDA <<<"$ITENS"
+
+    # Atualizar o total
+    TOTAL_VENDA="$TOTAL"
+
+    # Deletar o cupom cancelado
+    redis-cli -h $DB_HOST DEL "$CUPOM_KEY"
+
+    # Remover o arquivo de cupom em /etc/pdv/cupons
+    NUM_CUPOM_RECUPERADO="${CUPOM_KEY##compra:}"
+    rm -f "/etc/pdv/cupons/${NUM_CUPOM_RECUPERADO}_compra_cancelada.txt"
+
+    dialog --msgbox "Cupom recuperado com sucesso!" 6 40
+    registrar_log "$NOME_OPERADOR" "Recuperar Cupom" "Cupom $NUM_CUPOM_RECUPERADO recuperado."
+  fi
+}
+
+# Verificar se os diretórios de vendas e cupons existem, se não, criar
+[ ! -d "/etc/pdv/vendas" ] && mkdir -p "/etc/pdv/vendas"
 [ ! -d "/etc/pdv/cupons" ] && mkdir -p "/etc/pdv/cupons"
 
 # Iniciar o log
