@@ -350,8 +350,8 @@ finalizar_compra() {
   dialog --msgbox "Total da compra: R\$ $TOTAL_VENDA\nPagamento:\n$METODOS_PAGAMENTO\nObrigado pela compra!" 15 50
   registrar_log "$NOME_OPERADOR" "Finalizou Venda" "Total: R\$ $TOTAL_VENDA | Pagamento: $METODOS_PAGAMENTO"
 
-  # Salvar cupom de venda em /etc/pdv/vendas
-  CUPOM_FILE="/etc/pdv/vendas/$(date '+%Y%m%d%H%M%S')_cupom.txt"
+  # Salvar cupom de venda em /etc/pdv/cupons
+  CUPOM_FILE="/etc/pdv/cupons/$(date '+%Y%m%d%H%M%S')_cupom.txt"
 
   # Montar os itens para o cupom
   ITENS_CUPOM=""
@@ -376,8 +376,7 @@ finalizar_compra() {
   PAGAMENTOS=()
 }
 
-# Verificar se os diretórios de vendas e cupons existem, se não, criar
-[ ! -d "/etc/pdv/vendas" ] && mkdir -p "/etc/pdv/vendas"
+# Verificar se o diretório de cupons existe, se não, criar
 [ ! -d "/etc/pdv/cupons" ] && mkdir -p "/etc/pdv/cupons"
 
 # Iniciar o log
