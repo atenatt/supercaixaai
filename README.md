@@ -15,7 +15,7 @@ Aqui estão os heróis tecnológicos que estão ajudando a colocar tudo em prát
 ### O Caminho até a Glória (ou Deploy, como alguns chamam)
 Esse projeto não nasceu da noite para o dia. Cada etapa é um passo em direção ao sucesso do **SuperCaixa AI**. Dá uma olhada no que já foi feito e o que ainda vem por aí:
 
-1. **Primeiro, criamos o terreno (Infraestrutura)** 🏗️: Usamos o **Vagrant** e o **VirtualBox** para criar nossas máquinas locais. É como construir as fundações de uma casa: essencial para o que vem depois.
+1. **Primeiro, criamos o terreno (Infraestrutura)** 🏗️: Usamos o **Docker** para criar nossas máquinas locais. É como construir as fundações de uma casa: essencial para o que vem depois.
    
 2. **Hora de programar o cérebro (Funcionalidades)** 🧠: Agora estamos desenvolvendo os superpoderes do PDV — registrar vendas, gerar relatórios e gerenciar produtos. Cada funcionalidade é um upgrade nessa super máquina.
 
