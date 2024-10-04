@@ -1,28 +1,37 @@
-# Dockerfile.pdv
-FROM alpine:latest
+FROM debian:latest
 
-# Instalar dependências
-RUN apk add --no-cache redis dialog bash dos2unix bc openrc ncurses
+# Instalar dependências básicas
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash dos2unix bc openrc ncurses
 
-# Criando pasta que irá conter os arquivos de configuração do PDV
+# Instalar dependências do GTK e do PyGObject
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgtk-3-dev libgtk-3-0 libcairo2-dev libpango1.0-dev libgdk-pixbuf2.0-dev python3 python3-gi
+
+# Criando pastas para os arquivos de configuração do PDV
 RUN mkdir -p /etc/pdv/funcs
 RUN mkdir -p /etc/pdv/imgs
 RUN mkdir -p /var/log/vendas
 RUN mkdir -p /etc/pdv/cupons
 
-# Copiando os scripts PDV
-COPY /scripts/pdv_interface.sh /bin/pdv
-COPY /scripts/funcs/* /etc/pdv/funcs/
-COPY /scripts/iniciar_pdv.sh /bin/iniciar_pdv
-COPY /imgs/background.png /etc/pdv/imgs/background.png
+# Copiando os scripts do PDV para o container
+COPY scripts/pdv_interface.sh /bin/pdv
+COPY scripts/funcs/* /etc/pdv/funcs/
+COPY scripts/iniciar_pdv.sh /bin/iniciar_pdv
+COPY imgs/background.png /etc/pdv/imgs/background.png
 
 # Tornar os scripts executáveis
 RUN chmod +x /bin/pdv
 RUN chmod +x /etc/pdv/funcs/*
 RUN chmod +x /bin/iniciar_pdv
 
-# Converter o script para formato Unix
+# Converter os scripts para formato Unix
 RUN dos2unix /bin/pdv
 RUN dos2unix /etc/pdv/funcs/*
 RUN dos2unix /bin/iniciar_pdv
 
+# Configurar o ambiente de execução do Python
+ENV PYTHONUNBUFFERED=1
+
+# Executar o script principal do PDV ao iniciar o container
+CMD ["/bin/iniciar_pdv.sh"]

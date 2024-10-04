@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   web:
     build:
@@ -22,11 +23,12 @@ services:
       - supercaixa_network
     environment:
       - DB_HOST=redis_db
-    command: /bin/sh -c /etc/pdv/funcs/monitorar_promocoes.sh &
+    command: /bin/sh -c "/pdv/pdv_interface.sh"
     volumes:
       - redis_data:/data
       - ./logs:/var/log
       - ./cupons:/etc/pdv/cupons
+      - ./pdv:/pdv
 
   pdv2:
     build:
@@ -37,11 +39,12 @@ services:
       - supercaixa_network
     environment:
       - DB_HOST=redis_db
-    command: /bin/sh -c /etc/pdv/funcs/monitorar_promocoes.sh &
+    command: /bin/sh -c "/pdv/pdv_interface.sh"
     volumes:
       - redis_data:/data
       - ./logs:/var/log
       - ./cupons:/etc/pdv/cupons
+      - ./pdv:/pdv
 
   redis_db:
     build:
